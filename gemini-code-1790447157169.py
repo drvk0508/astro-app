@@ -8,13 +8,14 @@ st.set_page_config(page_title="Astro-Vastu AI Portal", page_icon="🔮", layout=
 # Gemini Client Initialize
 client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
 
-# Google Sheet Details
-SHEET_ID = "1kDZEHJiGpHLnUYKxyQ_Exp0_0od5EanL5cqog045ZO4"
-CSV_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv"
-
 def check_passcode_and_credits(input_code):
     try:
-        df = pd.read_csv(CSV_URL)
+        SHEET_ID = "1kDZEHJiGpHLnUYKxyQ_Exp0_0od5EanL5cqog045ZO4"
+        
+        # Google Visualization API endpoint (HTTP 404 Avoid karne ke liye sabse reliable format)
+        url = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv"
+        
+        df = pd.read_csv(url)
         
         # Space remove aur Uppercase conversion
         df['Passcode'] = df['Passcode'].astype(str).str.strip().str.upper()

@@ -14,9 +14,8 @@ except Exception as e:
 
 def check_passcode_and_credits(input_code):
     try:
-        SHEET_ID = "1kDZEHJiGpHLnUYKxyQ_Exp0_0od5EanL5cqog045ZO4"
-        url = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv"
-        
+        SHEET_ID = "1kDZEHjIGpHLnUYKxyQ_ExpO_0od5EanL5cqogO45ZO4"
+        url = https://docs.google.com/spreadsheets/d/1kDZEHjIGpHLnUYKxyQ_ExpO_0od5EanL5cqogO45ZO4/edit?gid=0#gid=0
         df = pd.read_csv(url)
         
         df['Passcode'] = df['Passcode'].astype(str).str.strip().str.upper()

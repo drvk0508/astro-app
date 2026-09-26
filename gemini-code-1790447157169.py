@@ -15,22 +15,33 @@ CSV_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv"
 
 def check_passcode_and_credits(input_code):
     try:
-        df = pd.read_csv(CSV_URL)
-        df['Passcode'] = df['Passcode'].astype(str).str.strip()
-        matched = df[df['Passcode'] == input_code.strip()]
+        # Standard Export URL Format
+        SHEET_ID = "1kDZEHJiGpHLnUYKxyQ_Exp0_0od5EanL5cqog045ZO4"
+        url = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv"
+        
+        df = pd.read_csv(url)
+        
+        # Space remove aur Uppercase conversion
+        df['Passcode'] = df['Passcode'].astype(str).str.strip().str.upper()
+        clean_code = str(input_code).strip().upper()
+        
+        matched = df[df['Passcode'] == clean_code]
         
         if not matched.empty:
             reports_left = int(matched.iloc[0]['Reports_Left'])
             status = str(matched.iloc[0]['Status']).strip()
-            if status == "Active" and reports_left > 0:
+            
+            if status.lower() == "active" and reports_left > 0:
                 return True, reports_left, "Success"
             elif reports_left <= 0:
-                return False, 0, "Credits khatam ho gaye hain! Kripya recharge karwayein."
+                return False, 0, "Credits khatam ho gaye hain!"
             else:
-                return False, 0, "Aapka account inactive hai."
+                return False, 0, "Aapka Passcode inactive hai."
         else:
-            return False, 0, "Invalid Passcode!"
+            return False, 0, f"Passcode '{clean_code}' Sheet mein nahi mila."
+            
     except Exception as e:
+        return False, 0, f"Sheet Read Error: {str(e)}"
         return False, 0, "Google Sheet connect nahi ho pa rahi hai."
 
 st.title("🔮 Astro-Vastu AI Report Generator")

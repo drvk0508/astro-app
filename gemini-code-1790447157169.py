@@ -1,19 +1,21 @@
+Python
 import streamlit as st
-import openai
-import fitz  # PyMuPDF (PDF reading ke liye)
+import pandas as pd
+import fitz  # PyMuPDF
+from google import genai
 
-# Page Configuration
 st.set_page_config(page_title="Astro-Vastu AI Portal", page_icon="🔮", layout="centered")
-import pandas as pd  # Top par import pandas add kar lein
 
-# Aapki Google Sheet ka CSV Export Link (Yahan apni Sheet ID daalein)
-SHEET_ID = "1kDZEHjIGpHLnUYKxyQ_ExpO_0od5EanL5cqogO45ZO4/edit?gid=0#gid=0"
-CSV_URL = f"https://docs.google.com/spreadsheets/d/https://docs.google.com/spreadsheets/d/1kDZEHjIGpHLnUYKxyQ_ExpO_0od5EanL5cqogO45ZO4/edit?gid=0#gid=0/gviz/tq?tqx=out:csv"
+# Gemini Client Initialize
+client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
+
+# Google Sheet Details (Sahi Sheet ID)
+SHEET_ID = "1kDZEHJiGpHLnUYKxyQ_Exp0_0od5EanL5cqog045ZO4"
+CSV_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv"
 
 def check_passcode_and_credits(input_code):
     try:
         df = pd.read_csv(CSV_URL)
-        # Clean data for exact match
         df['Passcode'] = df['Passcode'].astype(str).str.strip()
         matched = df[df['Passcode'] == input_code.strip()]
         
@@ -30,39 +32,28 @@ def check_passcode_and_credits(input_code):
             return False, 0, "Invalid Passcode!"
     except Exception as e:
         return False, 0, "Google Sheet connect nahi ho pa rahi hai."
+
 st.title("🔮 Astro-Vastu AI Report Generator")
 st.subheader("Acharya Vijay Krishna Shastri Special Framework")
 
-# OpenAI API Key & Passcode System
-openai.api_key = st.secrets["OPENAI_API_KEY"]
+# Sidebar Authentication
+st.sidebar.subheader("🔑 Student Authentication")
+student_code = st.sidebar.text_input("Enter Your Student Passcode", type="password")
 
-# Sidebar Login
-st.sidebar.header("🔑 Student Authentication")
-passcode = st.sidebar.text_input("Enter Your Student Passcode", type="password")
-
-# Passcode Verification (Basic Check)
-if passcode:
-    st.sidebar.success("Passcode Verified!")
+if student_code:
+    is_valid, credits_left, msg = check_passcode_and_credits(student_code)
     
-    # 1. Kundli PDF Upload Section
-    uploaded_file = st.file_uploader("Upload Kundli PDF", type=["pdf"])
-    
-    # 2. Client Details / Past Events Input
-    past_events = st.text_area(
-        "Enter Past Events & Query",
-        placeholder="Marriage Date, Education, Children DOB, Main Query etc."
-    )
-    
-    # 3. Generate Button
-    if st.button("Generate Precision Astro-Vastu Report (1 Credit)"):
-        if uploaded_file and past_events:
-            with st.spinner("Processing Kundli Data & Generating Report..."):
-                
-                # PDF Text Extraction
-                doc = fitz.open(stream=uploaded_file.read(), filetype="pdf")
-                pdf_text = ""
-                for page in doc:
-                    pdf_text += page.get_text()
+    if is_valid:
+        st.sidebar.success(f"Verified! Reports Left: {credits_left}")
+        
+        uploaded_file = st.file_uploader("Upload Kundli PDF", type=["pdf"])
+        past_events = st.text_area("Enter Past Events & Query")
+        
+        if st.button("Generate Astro-Vastu Precision Report (1 Credit)"):
+            if uploaded_file and past_events:
+                with st.spinner("Gemini AI Kundli Analysis Kar Raha Hai..."):
+                    doc = fitz.open(stream=uploaded_file.read(), filetype="pdf")
+                    pdf_text = "".join([page.get_text() for page in doc])
                 
                 # --- STEP 1 PROMPT (Extraction & Verification) ---
                 step1_prompt = f"""

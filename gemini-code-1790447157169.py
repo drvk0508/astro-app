@@ -14,8 +14,10 @@ except Exception as e:
 
 def check_passcode_and_credits(input_code):
     try:
-        SHEET_ID = "1kDZEHjIGpHLnUYKxyQ_ExpO_0od5EanL5cqogO45ZO4"
-        url = https://docs.google.com/spreadsheets/d/1kDZEHjIGpHLnUYKxyQ_ExpO_0od5EanL5cqogO45ZO4/edit?gid=0#gid=0
+        SHEET_ID = "1kDZEHJiGpHLnUYKxyQ_Exp0_0od5EanL5cqog045ZO4"
+        
+        # Sahi Quotes ke sath CSV URL
+        url = f"https://docs.google.com/spreadsheets/d/1kDZEHjIGpHLnUYKxyQ_ExpO_0od5EanL5cqogO45ZO4/edit?gid=0#gid=0
         df = pd.read_csv(url)
         
         df['Passcode'] = df['Passcode'].astype(str).str.strip().str.upper()
@@ -80,7 +82,7 @@ if student_code:
                     """
                     
                     response_step1 = client.models.generate_content(
-                        model="gemini 3.5-flash LIGHT",
+                        model="gemini-2.5-flash",
                         contents=step1_prompt,
                     )
                     step1_output = response_step1.text

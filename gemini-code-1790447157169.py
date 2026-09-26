@@ -9,9 +9,9 @@ st.set_page_config(page_title="Astro-Vastu AI Portal", page_icon="🔮", layout=
 client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
 
 # Google Sheet Details (Sahi Sheet ID)
-SHEET_ID = "1kDZEHJiGpHLnUYKxyQ_Exp0_0od5EanL5cqog045ZO4"
+SHEET_ID = "1kDZEHjIGpHLnUYKxyQ_ExpO_0od5EanL5cqogO45ZO4/edit?gid=0#gid=0"
 # Standard CSV Export Link
-CSV_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv"
+CSV_URL = https://docs.google.com/spreadsheets/d/1kDZEHjIGpHLnUYKxyQ_ExpO_0od5EanL5cqogO45ZO4/edit?gid=0#gid=0
 
 def check_passcode_and_credits(input_code):
     try:

@@ -7,7 +7,7 @@ st.set_page_config(page_title="Astro-Vastu AI Portal", page_icon="🔮", layout=
 import pandas as pd  # Top par import pandas add kar lein
 
 # Aapki Google Sheet ka CSV Export Link (Yahan apni Sheet ID daalein)
-SHEET_ID = "https://docs.google.com/spreadsheets/d/1kDZEHjIGpHLnUYKxyQ_ExpO_0od5EanL5cqogO45ZO4/edit?gid=0#gid=0"
+SHEET_ID = "1kDZEHjIGpHLnUYKxyQ_ExpO_0od5EanL5cqogO45ZO4/edit?gid=0#gid=0"
 CSV_URL = f"https://docs.google.com/spreadsheets/d/https://docs.google.com/spreadsheets/d/1kDZEHjIGpHLnUYKxyQ_ExpO_0od5EanL5cqogO45ZO4/edit?gid=0#gid=0/gviz/tq?tqx=out:csv"
 
 def check_passcode_and_credits(input_code):

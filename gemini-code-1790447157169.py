@@ -81,7 +81,7 @@ if student_code:
                     """
                     
                     response_step1 = client.models.generate_content(
-                        model="gemini-2.5-flash",
+                        model="gemini 3.5-flash LIGHT",
                         contents=step1_prompt,
                     )
                     step1_output = response_step1.text

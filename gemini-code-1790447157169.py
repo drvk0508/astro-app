@@ -5,7 +5,7 @@ from google import genai
 
 st.set_page_config(page_title="Astro-Vastu AI Portal", page_icon="🔮", layout="centered")
 
-# Streamlit secrets se API Key load karna
+# Gemini Client Initialize
 try:
     api_key = st.secrets["GEMINI_API_KEY"]
     client = genai.Client(api_key=api_key)
@@ -14,10 +14,9 @@ except Exception as e:
 
 def check_passcode_and_credits(input_code):
     try:
-        SHEET_ID = "1kDZEHJiGpHLnUYKxyQ_Exp0_0od5EanL5cqog045ZO4"
+        # Proper CSV Export URL with closing quote
+        url = "https://docs.google.com/spreadsheets/d/1kDZEHJiGpHLnUYKxyQ_Exp0_0od5EanL5cqog045ZO4/gviz/tq?tqx=out:csv"
         
-        # Sahi Quotes ke sath CSV URL
-        url = f"https://docs.google.com/spreadsheets/d/1kDZEHjIGpHLnUYKxyQ_ExpO_0od5EanL5cqogO45ZO4/edit?gid=0#gid=0
         df = pd.read_csv(url)
         
         df['Passcode'] = df['Passcode'].astype(str).str.strip().str.upper()
@@ -116,11 +115,9 @@ if student_code:
                     )
                     final_report = response_step2.text
                     
-                    # Display Output
                     st.success("Report Generated Successfully via Gemini AI!")
                     st.markdown(final_report)
                     
-                    # Download Button
                     st.download_button(
                         label="📥 Download Report as Text/Markdown",
                         data=final_report,

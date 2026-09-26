@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-import fitz  # PyMuPDF
+import fitz
 from google import genai
 
 st.set_page_config(page_title="Astro-Vastu AI Portal", page_icon="🔮", layout="centered")

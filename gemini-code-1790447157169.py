@@ -10,7 +10,8 @@ client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
 
 # Google Sheet Details (Sahi Sheet ID)
 SHEET_ID = "1kDZEHJiGpHLnUYKxyQ_Exp0_0od5EanL5cqog045ZO4"
-CSV_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv"
+# Standard CSV Export Link
+CSV_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv"
 
 def check_passcode_and_credits(input_code):
     try:

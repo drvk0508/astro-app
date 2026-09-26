@@ -1,23 +1,24 @@
 import streamlit as st
 import pandas as pd
-import fitz
+import fitz  # PyMuPDF
 from google import genai
 
 st.set_page_config(page_title="Astro-Vastu AI Portal", page_icon="🔮", layout="centered")
 
-# Gemini Client Initialize
-client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
+# Streamlit secrets se API Key load karna
+try:
+    api_key = st.secrets["GEMINI_API_KEY"]
+    client = genai.Client(api_key=api_key)
+except Exception as e:
+    st.error("GEMINI_API_KEY Streamlit Secrets mein nahi mili! Kripya Streamlit Secrets configuration check karein.")
 
 def check_passcode_and_credits(input_code):
     try:
         SHEET_ID = "1kDZEHJiGpHLnUYKxyQ_Exp0_0od5EanL5cqog045ZO4"
-        
-        # Google Visualization API endpoint 
-        url = f"https://docs.google.com/spreadsheets/d/1kDZEHJiGpHLnUYKxyQ_Exp0_0od5EanL5cqog045ZO4/gviz/tq?tqx=out:csv"
+        url = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv"
         
         df = pd.read_csv(url)
         
-        # Space remove aur Uppercase conversion
         df['Passcode'] = df['Passcode'].astype(str).str.strip().str.upper()
         clean_code = str(input_code).strip().upper()
         

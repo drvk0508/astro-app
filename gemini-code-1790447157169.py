@@ -4,7 +4,32 @@ import fitz  # PyMuPDF (PDF reading ke liye)
 
 # Page Configuration
 st.set_page_config(page_title="Astro-Vastu AI Portal", page_icon="🔮", layout="centered")
+import pandas as pd  # Top par import pandas add kar lein
 
+# Aapki Google Sheet ka CSV Export Link (Yahan apni Sheet ID daalein)
+SHEET_ID = "https://docs.google.com/spreadsheets/d/1kDZEHjIGpHLnUYKxyQ_ExpO_0od5EanL5cqogO45ZO4/edit?gid=0#gid=0"
+CSV_URL = f"https://docs.google.com/spreadsheets/d/https://docs.google.com/spreadsheets/d/1kDZEHjIGpHLnUYKxyQ_ExpO_0od5EanL5cqogO45ZO4/edit?gid=0#gid=0/gviz/tq?tqx=out:csv"
+
+def check_passcode_and_credits(input_code):
+    try:
+        df = pd.read_csv(CSV_URL)
+        # Clean data for exact match
+        df['Passcode'] = df['Passcode'].astype(str).str.strip()
+        matched = df[df['Passcode'] == input_code.strip()]
+        
+        if not matched.empty:
+            reports_left = int(matched.iloc[0]['Reports_Left'])
+            status = str(matched.iloc[0]['Status']).strip()
+            if status == "Active" and reports_left > 0:
+                return True, reports_left, "Success"
+            elif reports_left <= 0:
+                return False, 0, "Credits khatam ho gaye hain! Kripya recharge karwayein."
+            else:
+                return False, 0, "Aapka account inactive hai."
+        else:
+            return False, 0, "Invalid Passcode!"
+    except Exception as e:
+        return False, 0, "Google Sheet connect nahi ho pa rahi hai."
 st.title("🔮 Astro-Vastu AI Report Generator")
 st.subheader("Acharya Vijay Krishna Shastri Special Framework")
 

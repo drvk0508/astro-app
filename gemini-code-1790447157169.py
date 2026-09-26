@@ -6,14 +6,14 @@ from google import genai
 st.set_page_config(page_title="Astro-Vastu AI Portal", page_icon="🔮", layout="centered")
 
 # Gemini Client Initialize
-client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
+client = genai.Client(api_key=st.secrets["GEMINI_APAQ.Ab8RN6L5Ce1I8BaZl7jJdaLyVRE7suoySKxcdxyI8JiPqXf-YgI_KEY"])
 
 def check_passcode_and_credits(input_code):
     try:
         SHEET_ID = "1kDZEHJiGpHLnUYKxyQ_Exp0_0od5EanL5cqog045ZO4"
         
-        # Google Visualization API endpoint (HTTP 404 Avoid karne ke liye sabse reliable format)
-        url = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv"
+        # Google Visualization API endpoint 
+        url = f"https://docs.google.com/spreadsheets/d/1kDZEHJiGpHLnUYKxyQ_Exp0_0od5EanL5cqog045ZO4/gviz/tq?tqx=out:csv"
         
         df = pd.read_csv(url)
         

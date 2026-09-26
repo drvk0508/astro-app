@@ -6,7 +6,7 @@ from google import genai
 st.set_page_config(page_title="Astro-Vastu AI Portal", page_icon="🔮", layout="centered")
 
 # Gemini Client Initialize
-client = genai.Client(api_key=st.secrets["GEMINI_APAQ.Ab8RN6L5Ce1I8BaZl7jJdaLyVRE7suoySKxcdxyI8JiPqXf-YgI_KEY"])
+client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
 
 def check_passcode_and_credits(input_code):
     try:

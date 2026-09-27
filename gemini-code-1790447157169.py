@@ -17,15 +17,15 @@ st.set_page_config(
 )
 
 APP_NAME = "Astro-Vastu AI Report Generator"
-APP_VERSION = "4.3 (Fixed Model Formatting)"
+APP_VERSION = "4.4 (Updated Active Gemini Models)"
 
 # ============================================================
-# ACTIVE GEMINI MODELS
+# ACTIVE & SUPPORTED GEMINI MODELS
 # ============================================================
 
 PRIMARY_MODEL = "gemini-2.5-flash"
 FALLBACK_MODEL_1 = "gemini-2.5-pro"
-FALLBACK_MODEL_2 = "gemini-2.0-flash"
+FALLBACK_MODEL_2 = "gemini-2.5-flash"
 
 MAX_PDF_SIZE_MB = 50
 
@@ -339,88 +339,4 @@ if st.session_state.authenticated:
 
         try:
             client = get_gemini_client()
-            pdf_bytes = validate_pdf(uploaded_file)
-
-            with st.spinner("चरण 1/2 — कुंडली से डाटा निकाला जा रहा है..."):
-                extraction = extract_kundli_data(client, pdf_bytes, past_events)
-
-            st.success("चरण 1 पूर्ण — कुंडली डेटा सफलतापूर्वक निकाला गया।")
-
-            with st.expander("🔍 View Extracted Kundli Data (JSON)"):
-                st.json(extraction)
-
-            with st.spinner("चरण 2/2 — हिंदी एस्ट्रो-वास्तु रिपोर्ट तैयार की जा रही है..."):
-                final_report = generate_final_report(client, extraction, past_events)
-
-            st.session_state['extraction_data'] = extraction
-            st.session_state['final_report'] = final_report
-            st.session_state['chat_history'] = []
-            st.success("हिंदी एस्ट्रो-वास्तु रिपोर्ट सफलतापूर्वक तैयार हो गई है!")
-
-        except Exception as e:
-            st.error("Report generation failed: " + str(e))
-
-    # ============================================================
-    # REPORT DISPLAY & FOLLOW-UP CHAT SECTION
-    # ============================================================
-
-    if "final_report" in st.session_state:
-        st.markdown("---")
-        markdown_report = report_to_markdown(st.session_state['final_report'])
-        st.markdown(markdown_report)
-
-        st.download_button(
-            label="📥 Download Hindi Report (Markdown)",
-            data=markdown_report,
-            file_name="Hindi_Astro_Vastu_Report.md",
-            mime="text/markdown"
-        )
-
-        st.markdown("---")
-        st.header("💬 अपनी कुंडली के बारे में सवाल पूछें (Ask Questions)")
-        st.write("रिपोर्ट और कुंडली के आधार पर आप नीचे कोई भी प्रश्न हिंदी या Hinglish में पूछ सकते हैं:")
-
-        for msg in st.session_state.get('chat_history', []):
-            with st.chat_message(msg["role"]):
-                st.write(msg["content"])
-
-        user_question = st.chat_input("अपना प्रश्न यहाँ लिखें (उदा: क्या मुझे व्यापार में सफलता मिलेगी?)...")
-
-        if user_question:
-            st.session_state.chat_history.append({"role": "user", "content": user_question})
-            with st.chat_message("user"):
-                st.write(user_question)
-
-            with st.chat_message("assistant"):
-                with st.spinner("आचार्य जी विश्लेषण कर रहे हैं..."):
-                    try:
-                        client = get_gemini_client()
-                        kundli_str = json.dumps(st.session_state['extraction_data'], ensure_ascii=False)
-                        report_str = json.dumps(st.session_state['final_report'], ensure_ascii=False)
-                        
-                        chat_prompt = f"""Tum Acharya Vijay Krishna Shastri ke Astro-Vastu assistant ho.
-Niche di gayi Kundli Extraction Data aur Report ke aadhar par user ke sawal ka saral, spashth aur accurate uttar HINDI (Devnagri) me do.
-
-KUNDLI DATA:
-{kundli_str}
-
-REPORT DATA:
-{report_str}
-
-USER QUESTION: {user_question}"""
-
-                        response = call_gemini_with_fallback(
-                            client=client,
-                            contents=chat_prompt,
-                            config=None
-                        )
-
-                        answer = response.text if response and response.text else "क्षमा करें, उत्तर प्राप्त नहीं हो सका।"
-                        st.write(answer)
-                        st.session_state.chat_history.append({"role": "assistant", "content": answer})
-
-                    except Exception as chat_err:
-                        st.error("Sawal ka uttar dene me error aaya: " + str(chat_err))
-
-else:
-    st.info("👈 Please Left Sidebar open karke Student Passcode enter karein.")
+            pdf_

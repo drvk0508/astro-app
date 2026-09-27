@@ -15,27 +15,20 @@ st.set_page_config(
 )
 
 APP_NAME = "Astro-Vastu AI Report Generator"
-APP_VERSION = "2.4 (Syntax & String Fix)"
+APP_VERSION = "2.5 (Blank Screen Fix)"
 GEMINI_MODEL = "gemini-2.5-flash"
 MAX_PDF_SIZE_MB = 50
 
 
 # ============================================================
-# GEMINI CLIENT
+# GEMINI CLIENT INITIALIZATION
 # ============================================================
 
-@st.cache_resource
 def get_gemini_client():
-    try:
-        api_key = st.secrets.get("GEMINI_API_KEY")
-        if not api_key:
-            raise ValueError("GEMINI_API_KEY Secrets mein missing hai.")
-        return genai.Client(api_key=api_key)
-    except Exception as e:
-        st.error(f"Gemini API Config Error: {str(e)}")
-        st.stop()
-
-client = get_gemini_client()
+    api_key = st.secrets.get("GEMINI_API_KEY")
+    if not api_key:
+        raise ValueError("GEMINI_API_KEY Streamlit Secrets mein missing hai.")
+    return genai.Client(api_key=api_key)
 
 
 # ============================================================
@@ -97,13 +90,13 @@ def parse_gemini_json(text):
 # STEP 1 — KUNDLI EXTRACTION
 # ============================================================
 
-def extract_kundli_data(pdf_bytes, past_events):
-    prompt = """
+def extract_kundli_data(client, pdf_bytes, past_events):
+    prompt = r"""
 Tum ek expert Astro-Vastu research data extraction assistant ho.
 PDF se sabhi astrological details dhyan se extract karo aur NICHE DIYE GAYE FORMAT MEIN STRICT VALID JSON RETURN KARO.
 
 CLIENT PAST EVENTS / QUERY:
-""" + str(past_events) + """
+""" + str(past_events) + r"""
 
 Return ONLY valid JSON with this exact structure:
 {
@@ -178,17 +171,17 @@ Return ONLY valid JSON with this exact structure:
 # STEP 2 — FINAL REPORT
 # ============================================================
 
-def generate_final_report(extraction, past_events):
-    prompt = """
+def generate_final_report(client, extraction, past_events):
+    prompt = r"""
 Tum Acharya Vijay Krishna Shastri ke Astro-Vastu research assistant ho.
 Extracted Kundli data ke aadhar par final research report taiyar karo.
 ONLY VALID JSON RETURN KARO.
 
 CLIENT QUERY / EVENTS:
-""" + str(past_events) + """
+""" + str(past_events) + r"""
 
 EXTRACTED DATA:
-""" + json.dumps(extraction, ensure_ascii=False, indent=2) + """
+""" + json.dumps(extraction, ensure_ascii=False, indent=2) + r"""
 
 Return ONLY valid JSON with this exact structure:
 {
@@ -266,13 +259,4 @@ def report_to_markdown(report):
     for item in report.get('important_dates', []):
         md.append(f"- {item}")
 
-    md.append("\n## 9. Limitations\n")
-    for item in report.get('limitations', []):
-        md.append(f"- {item}")
-
-    md.append("\n---\n*This report is an interpretive Astro-Vastu guidance document.*")
-    return "\n".join(md)
-
-
-# ============================================================
-# UI HEADER
+    md.append("\

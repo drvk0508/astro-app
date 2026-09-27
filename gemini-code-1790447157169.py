@@ -5,7 +5,7 @@ from google import genai
 from google.genai import types
 
 # ============================================================
-# STREAMLIT CONFIG
+# STREAMLIT CONFIG & MODEL SELECTION
 # ============================================================
 
 st.set_page_config(
@@ -15,8 +15,8 @@ st.set_page_config(
 )
 
 APP_NAME = "Astro-Vastu AI Report Generator"
-APP_VERSION = "2.7 (Syntax String Fix)"
-GEMINI_MODEL = "gemini-2.5-flash"
+APP_VERSION = "2.8 (Model Name Fix)"
+GEMINI_MODEL = "gemini-3.8-flash"  # <--- Updated model name
 MAX_PDF_SIZE_MB = 50
 
 

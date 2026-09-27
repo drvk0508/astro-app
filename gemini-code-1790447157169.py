@@ -21,9 +21,9 @@ APP_VERSION = "5.2 (Final Debug Ready)"
 # ACTIVE GEMINI MODELS
 # ============================================================
 
-PRIMARY_MODEL = "gemini-3.8-flash"   # ✅ Updated model
-FALLBACK_MODEL_1 = "gemini-2.5-pro"
-FALLBACK_MODEL_2 = "gemini-2.5-flash"
+PRIMARY_MODEL = "gemini-3.6-flash"   # ✅ Updated model
+FALLBACK_MODEL_1 = "gemini-3.5-flash"
+FALLBACK_MODEL_2 = "gemini-3.1-pro"
 
 MAX_PDF_SIZE_MB = 50
 

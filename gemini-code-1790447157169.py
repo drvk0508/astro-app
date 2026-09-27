@@ -122,7 +122,7 @@ def validate_pdf(uploaded_file):
     if not pdf_bytes or len(pdf_bytes) == 0:
         raise ValueError("Uploaded PDF khali hai.")
 
-    if (len(pdf_bytes) / (1024 * 1024)) > MAX_PDF_SIZE_MB:
+    if (len(pdf_bytes) / (1024 * 1024)) > MAX_PDF_SIZE_MB:50
         raise ValueError("PDF file 50 MB se chhoti honi chahiye.")
 
     return pdf_bytes

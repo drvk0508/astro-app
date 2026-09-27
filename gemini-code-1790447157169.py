@@ -296,5 +296,127 @@ def report_to_markdown(report):
 # ============================================================
 
 st.title("🔮 Astro-Vastu AI Report Generator")
-st.subheader("आचार्य विजय कृष्ण शास्त्री")
+st.subheader("आचार्य विजय कृष्ण शास्त्री विशेष फ्रेमवर्क")
 
+st.sidebar.header("🔑 Student Authentication")
+student_code = st.sidebar.text_input("Enter Student Passcode", type="password")
+
+if student_code:
+    if verify_passcode(student_code):
+        st.session_state.authenticated = True
+        st.sidebar.success("Passcode Verified")
+    else:
+        st.session_state.authenticated = False
+        st.sidebar.error("Invalid Passcode!")
+
+
+# ============================================================
+# MAIN APPLICATION INTERFACE
+# ============================================================
+
+if st.session_state.authenticated:
+    st.success("Student authentication successful.")
+
+    uploaded_file = st.file_uploader("📄 Upload Kundli PDF", type=["pdf"])
+    past_events = st.text_area(
+        "📝 Enter Past Events & Main Query",
+        height=180,
+        placeholder="Example:\nDATE OF MARRIAGE: 11 NOV 1997\nDATE OF BIRTH OF SON: 06 MAY 1999\n\nMain Query: Career and finance outlook."
+    )
+
+    if st.button("🚀 Generate Hindi Astro-Vastu Report", type="primary"):
+        if not uploaded_file:
+            st.error("Please Kundli PDF upload karein.")
+            st.stop()
+
+        if not past_events.strip():
+            st.error("Please Past Events / Query enter karein.")
+            st.stop()
+
+        try:
+            client = get_gemini_client()
+            pdf_bytes = validate_pdf(uploaded_file)
+
+            with st.spinner("चरण 1/2 — कुंडली से डाटा निकाला जा रहा है..."):
+                extraction = extract_kundli_data(client, pdf_bytes, past_events)
+
+            st.success("चरण 1 पूर्ण — कुंडली डेटा सफलतापूर्वक निकाला गया।")
+
+            with st.expander("🔍 View Extracted Kundli Data (JSON)"):
+                st.json(extraction)
+
+            with st.spinner("चरण 2/2 — हिंदी एस्ट्रो-वास्तु रिपोर्ट तैयार की जा रही है..."):
+                final_report = generate_final_report(client, extraction, past_events)
+
+            st.session_state['extraction_data'] = extraction
+            st.session_state['final_report'] = final_report
+            st.session_state['chat_history'] = []
+            st.success("हिंदी एस्ट्रो-वास्तु रिपोर्ट सफलतापूर्वक तैयार हो गई है!")
+
+        except Exception as e:
+            st.error("Report generation failed: " + str(e))
+
+    # ============================================================
+    # REPORT DISPLAY & FOLLOW-UP CHAT SECTION
+    # ============================================================
+
+    if "final_report" in st.session_state:
+        st.markdown("---")
+        markdown_report = report_to_markdown(st.session_state['final_report'])
+        st.markdown(markdown_report)
+
+        st.download_button(
+            label="📥 Download Hindi Report (Markdown)",
+            data=markdown_report,
+            file_name="Hindi_Astro_Vastu_Report.md",
+            mime="text/markdown"
+        )
+
+        st.markdown("---")
+        st.header("💬 अपनी कुंडली के बारे में सवाल पूछें (Ask Questions)")
+        st.write("रिपोर्ट और कुंडली के आधार पर आप नीचे कोई भी प्रश्न हिंदी या Hinglish में पूछ सकते हैं:")
+
+        for msg in st.session_state.get('chat_history', []):
+            with st.chat_message(msg["role"]):
+                st.write(msg["content"])
+
+        user_question = st.chat_input("अपना प्रश्न यहाँ लिखें (उदा: क्या मुझे व्यापार में सफलता मिलेगी?)...")
+
+        if user_question:
+            st.session_state.chat_history.append({"role": "user", "content": user_question})
+            with st.chat_message("user"):
+                st.write(user_question)
+
+            with st.chat_message("assistant"):
+                with st.spinner("आचार्य जी विश्लेषण कर रहे हैं..."):
+                    try:
+                        client = get_gemini_client()
+                        kundli_str = json.dumps(st.session_state['extraction_data'], ensure_ascii=False)
+                        report_str = json.dumps(st.session_state['final_report'], ensure_ascii=False)
+                        
+                        chat_prompt = f"""Tum Acharya Vijay Krishna Shastri ke Astro-Vastu assistant ho.
+Niche di gayi Kundli Extraction Data aur Report ke aadhar par user ke sawal ka saral, spashth aur accurate uttar HINDI (Devnagri) me do.
+
+KUNDLI DATA:
+{kundli_str}
+
+REPORT DATA:
+{report_str}
+
+USER QUESTION: {user_question}"""
+
+                        response = call_gemini_with_fallback(
+                            client=client,
+                            contents=chat_prompt,
+                            config=None
+                        )
+
+                        answer = response.text if response and response.text else "क्षमा करें, उत्तर प्राप्त नहीं हो सका।"
+                        st.write(answer)
+                        st.session_state.chat_history.append({"role": "assistant", "content": answer})
+
+                    except Exception as chat_err:
+                        st.error("Sawal ka uttar dene me error aaya: " + str(chat_err))
+
+else:
+    st.info("Report generate karne ke liye sidebar mein valid Student Passcode enter karein.")

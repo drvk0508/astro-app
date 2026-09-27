@@ -269,7 +269,30 @@ def verify_passcode(passcode):
             "verify",
             clean_code
         )
+def call_sheet_api(action, passcode):
+    if not SHEET_API_URL:
+        raise RuntimeError("SHEET_API_URL Streamlit Secrets mein configured nahi hai.")
 
+    payload = {"action": action, "passcode": passcode}
+
+    # FIX 1: allow_redirects=True add kiya taaki Google redirection handle ho jaye
+    response = requests.post(SHEET_API_URL, json=payload, timeout=20, allow_redirects=True)
+    response.raise_for_status()
+
+    # FIX 2: Khali response check
+    if not response.text.strip():
+        raise RuntimeError("Google Apps Script ne khali (empty) response bheja hai.")
+
+    # FIX 3: Safe JSON decode (Crash hone se bachane ke liye)
+    try:
+        data = response.json()
+    except Exception:
+        raise RuntimeError(f"Server ne JSON response nahi bheja. Response: {response.text[:100]}")
+
+    if not data.get("success", False):
+        raise RuntimeError(data.get("message", "Google Sheet API error."))
+
+    return data
         return {
             "valid": bool(
                 data.get("valid", False)

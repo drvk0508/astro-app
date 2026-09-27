@@ -23,7 +23,7 @@ APP_VERSION = "4.4 (Updated Active Gemini Models)"
 # ACTIVE & SUPPORTED GEMINI MODELS
 # ============================================================
 
-PRIMARY_MODEL = "gemini-2.5-flash"
+PRIMARY_MODEL = "gemini-3.8-flash"
 FALLBACK_MODEL_1 = "gemini-2.5-pro"
 FALLBACK_MODEL_2 = "gemini-2.5-flash"
 
@@ -339,4 +339,4 @@ if st.session_state.authenticated:
 
         try:
             client = get_gemini_client()
-            pdf_
+            pdf_bytes = validate_pdf(uploaded_file)

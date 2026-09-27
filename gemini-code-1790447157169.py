@@ -15,7 +15,7 @@ st.set_page_config(
 )
 
 APP_NAME = "Astro-Vastu AI Report Generator"
-APP_VERSION = "5.0 (Final Integrated)"
+APP_VERSION = "5.1 (Debug Ready)"
 
 # ============================================================
 # ACTIVE GEMINI MODELS
@@ -34,4 +34,16 @@ MAX_PDF_SIZE_MB = 50
 def get_gemini_client():
     api_key = st.secrets.get("GEMINI_API_KEY")
     if not api_key:
-        raise Value
+        raise ValueError("GEMINI_API_KEY missing in Streamlit Secrets.")
+    return genai.Client(api_key=api_key)
+
+# ============================================================
+# AUTHENTICATION
+# ============================================================
+
+def verify_passcode(passcode):
+    clean_code = str(passcode).strip()
+    if not clean_code:
+        return False
+    valid_student_code = str(st.secrets.get("STUDENT_PASSCODE", "ASTRO2026")).strip()
+    valid_admin_code = str

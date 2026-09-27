@@ -23,9 +23,45 @@ APP_VERSION = "4.4 (Updated Active Gemini Models)"
 # ACTIVE & SUPPORTED GEMINI MODELS
 # ============================================================
 
-PRIMARY_MODEL = "gemini-3.8-flash"
+PRIMARY_MODEL = "gemini-3.8-flash"   # ✅ नया मॉडल
 FALLBACK_MODEL_1 = "gemini-2.5-pro"
 FALLBACK_MODEL_2 = "gemini-2.5-flash"
+
+# ============================================================
+# MAIN APPLICATION INTERFACE
+# ============================================================
+
+if st.session_state.authenticated:
+    st.success("Student authentication successful.")
+
+    uploaded_file = st.file_uploader("📄 Upload Kundli PDF", type=["pdf"])
+    past_events = st.text_area(
+        "📝 Enter Past Events & Main Query",
+        height=180,
+        placeholder="Example:\nDATE OF MARRIAGE: 11 NOV 1997\nDATE OF BIRTH OF SON: 06 MAY 1999\n\nMain Query: Career and finance outlook."
+    )
+
+    if st.button("🚀 Generate Hindi Astro-Vastu Report", type="primary"):
+        if not uploaded_file:
+            st.error("Please Kundli PDF upload karein.")
+            st.stop()
+
+        if not past_events.strip():
+            st.error("Please Past Events / Query enter karein.")
+            st.stop()
+
+        try:
+            client = get_gemini_client()
+            # ✅ Line 342 Fix
+            pdf_bytes = validate_pdf(uploaded_file)
+
+            extraction = extract_kundli_data(client, pdf_bytes, past_events)
+            report = generate_final_report(client, extraction, past_events)
+
+            st.markdown(report_to_markdown(report))
+
+        except Exception as e:
+            st.error(f"Report generation failed: {str(e)}")
 
 MAX_PDF_SIZE_MB = 50
 

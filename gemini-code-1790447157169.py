@@ -21,7 +21,7 @@ APP_VERSION = "5.2 (Final Debug Ready)"
 # ACTIVE GEMINI MODELS
 # ============================================================
 
-PRIMARY_MODEL = "gemini-3.6-flash"   # ✅ Updated model
+PRIMARY_MODEL = "gemini-3.6-flash"   
 FALLBACK_MODEL_1 = "gemini-3.5-flash"
 FALLBACK_MODEL_2 = "gemini-3.1-pro"
 

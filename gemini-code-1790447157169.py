@@ -16,9 +16,9 @@ st.set_page_config(
 )
 
 APP_NAME = "Astro-Vastu AI Report Generator"
-APP_VERSION = "3.2 (Updated Fallback Models + Hindi Devnagri + Chat)"
+APP_VERSION = "3.3 (Fixed Syntax Error + Fallback + Hindi Devnagri)"
 
-# Updated Stable Models for 2026 API Version
+# Stable Models for 2026 API Version
 PRIMARY_MODEL = "gemini-2.5-flash"
 FALLBACK_MODEL_1 = "gemini-2.5-pro"
 FALLBACK_MODEL_2 = "gemini-2.0-flash"
@@ -62,8 +62,8 @@ if "authenticated" not in st.session_state:
 
 def call_gemini_with_fallback(client, contents, config):
     """
-    Pehle primary model (gemini-2.5-flash) par try karta hai.
-    Agar 404/503/Busy issue aaye, toh active backup models par automatic switch hota hai.
+    Pehle primary model par try karta hai.
+    Agar 404/503/Busy issue aaye, toh active backup models par switch ho jata hai.
     """
     models_to_try = [PRIMARY_MODEL, FALLBACK_MODEL_1, FALLBACK_MODEL_2]
     last_exception = None
@@ -79,7 +79,6 @@ def call_gemini_with_fallback(client, contents, config):
                 return response
         except Exception as e:
             last_exception = e
-            # Log & try next model directly if model not found or busy
             continue
 
     raise RuntimeError(f"Sabhi AI models busy hain ya error aaya: {str(last_exception)}")
@@ -126,61 +125,64 @@ def parse_gemini_json(text):
 # ============================================================
 
 def extract_kundli_data(client, pdf_bytes, past_events):
-    prompt = (
-        "Tum ek expert Astro-Vastu research data extraction assistant ho.\n"
-        "PDF se sabhi astrological details dhyan se extract karo aur NICHE DIYE GAYE FORMAT MEIN STRICT VALID JSON RETURN KARO.\n\n"
-        "CLIENT PAST EVENTS / QUERY:\n" + str(past_events) + "\n\n"
-        "Return ONLY valid JSON with this exact structure:\n"
-        "{\n"
-        '  "extraction_status": "Success / Partial",\n'
-        '  "birth_details": "DOB, Time, Place",\n'
-        '  "current_dasha": {\n'
-        '    "mahadasha": "",\n'
-        '    "antardasha": "",\n'
-        '    "pratyantar_dasha": "",\n'
-        '    "sukshma_dasha": "",\n'
-        '    "start_date": "",\n'
-        '    "end_date": ""\n'
-        "  },\n"
-        '  "planet_positions": [\n'
-        "    {\n"
-        '      "planet": "Sun",\n'
-        '      "degree": "",\n'
-        '      "rashi": "",\n'
-        '      "bhava": "",\n'
-        '      "nakshatra": "",\n'
-        '      "pada": "",\n'
-        '      "retrograde": "Yes/No"\n'
-        "    }\n"
-        "  ],\n"
-        '  "ashtakavarga": {\n'
-        '    "sixth_house": "",\n'
-        '    "seventh_house": "",\n'
-        '    "tenth_house": "",\n'
-        '    "eleventh_house": ""\n'
-        "  },\n"
-        '  "divisional_charts": [\n'
-        "    {\n"
-        '      "chart": "D-1",\n'
-        '      "ascendant": "",\n'
-        '      "important_planets": [],\n'
-        '      "observations": []\n'
-        "    }\n"
-        "  ],\n"
-        '  "kp_data_available": false,\n'
-        '  "kp_observations": [],\n'
-        '  "past_event_verification": [\n'
-        "    {\n"
-        '      "event": "",\n'
-        '      "date_or_age": "",\n'
-        '      "verification": "Yes/No/Unclear",\n'
-        '      "astrological_reason": ""\n'
-        "    }\n"
-        "  ],\n"
-        '  "missing_information": [],\n'
-        '  "warnings": []\n'
-        "}\n"
-    )
+    prompt = f"""
+Tum ek expert Astro-Vastu research data extraction assistant ho.
+PDF se sabhi astrological details dhyan se extract karo aur NICHE DIYE GAYE FORMAT MEIN STRICT VALID JSON RETURN KARO.
+
+CLIENT PAST EVENTS / QUERY:
+{past_events}
+
+Return ONLY valid JSON with this exact structure:
+{{
+  "extraction_status": "Success / Partial",
+  "birth_details": "DOB, Time, Place",
+  "current_dasha": {{
+    "mahadasha": "",
+    "antardasha": "",
+    "pratyantar_dasha": "",
+    "sukshma_dasha": "",
+    "start_date": "",
+    "end_date": ""
+  }},
+  "planet_positions": [
+    {{
+      "planet": "Sun",
+      "degree": "",
+      "rashi": "",
+      "bhava": "",
+      "nakshatra": "",
+      "pada": "",
+      "retrograde": "Yes/No"
+    }}
+  ],
+  "ashtakavarga": {{
+    "sixth_house": "",
+    "seventh_house": "",
+    "tenth_house": "",
+    "eleventh_house": ""
+  }},
+  "divisional_charts": [
+    {{
+      "chart": "D-1",
+      "ascendant": "",
+      "important_planets": [],
+      "observations": []
+    }}
+  ],
+  "kp_data_available": false,
+  "kp_observations": [],
+  "past_event_verification": [
+    {{
+      "event": "",
+      "date_or_age": "",
+      "verification": "Yes/No/Unclear",
+      "astrological_reason": ""
+    }}
+  ],
+  "missing_information": [],
+  "warnings": []
+}}
+"""
 
     pdf_part = types.Part.from_bytes(
         data=pdf_bytes,
@@ -202,8 +204,75 @@ def extract_kundli_data(client, pdf_bytes, past_events):
 
 def generate_final_report(client, extraction, past_events):
     extraction_str = json.dumps(extraction, ensure_ascii=False, indent=2)
-    prompt = (
-        "Tum Acharya Vijay Krishna Shastri ke Astro-Vastu research assistant ho.\n"
-        "Extracted Kundli data ke aadhar par final research report PURE HINDI (DEVNAGRI SCRIPT - देवनागरी) me taiyar karo.\n"
-        "English alphabets ka prayog kewal technical terms ya dates ke liye hi karein. Baaki poora text Hindi (Devnagri) me hona chahiye.\n"
-        "ONLY VALID JSON RETURN KARO.\n\n
+    prompt = f"""
+Tum Acharya Vijay Krishna Shastri ke Astro-Vastu research assistant ho.
+Extracted Kundli data ke aadhar par final research report PURE HINDI (DEVNAGRI SCRIPT - देवनागरी) me taiyar karo.
+English alphabets ka prayog kewal technical terms ya dates ke liye hi karein. Baaki poora text Hindi (Devnagri) me hona chahiye.
+ONLY VALID JSON RETURN KARO.
+
+CLIENT QUERY / EVENTS:
+{past_events}
+
+EXTRACTED DATA:
+{extraction_str}
+
+Return ONLY valid JSON with this exact structure:
+{{
+  "report_title": "एस्ट्रो-वास्तु शोध रिपोर्ट",
+  "executive_summary": "हिंदी में...",
+  "data_quality_note": "हिंदी में...",
+  "career_and_finance_cause": "हिंदी में...",
+  "job_and_debt_timeline": "हिंदी में...",
+  "marriage_d9_analysis": "हिंदी में...",
+  "children_d7_analysis": "हिंदी में...",
+  "quarterly_breakdown": [
+    {{
+      "quarter": "Q1",
+      "period": "जनवरी - मार्च",
+      "career": "हिंदी में...",
+      "finance": "हिंदी में...",
+      "debt": "हिंदी में...",
+      "relationship": "हिंदी में...",
+      "important_transits": "हिंदी में...",
+      "practical_advice": "हिंदी में..."
+    }}
+  ],
+  "vastu_improvements": ["वास्तु उपाय 1", "वास्तु उपाय 2"],
+  "spiritual_remedies": ["यंत्र व आध्यात्मिक उपाय 1", "उपाय 2"],
+  "important_dates": ["महत्वपूर्ण तिथि 1", "महत्वपूर्ण तिथि 2"],
+  "limitations": ["सीमा 1"]
+}}
+"""
+
+    response = call_gemini_with_fallback(
+        client=client,
+        contents=prompt,
+        config={"response_mime_type": "application/json"}
+    )
+
+    return parse_gemini_json(response.text)
+
+
+# ============================================================
+# MARKDOWN FORMATTER (HINDI)
+# ============================================================
+
+def report_to_markdown(report):
+    md = []
+    md.append(f"# {report.get('report_title', 'एस्ट्रो-वास्तु शोध रिपोर्ट')}")
+    md.append("\n## कार्यपालक सारांश (Executive Summary)\n" + str(report.get('executive_summary', '')))
+    md.append("\n## डेटा गुणवत्ता नोट (Data Quality Note)\n" + str(report.get('data_quality_note', '')))
+    md.append("\n## 1. करियर एवं वित्तीय स्थिति (Career & Finance)\n" + str(report.get('career_and_finance_cause', '')))
+    md.append("\n## 2. नौकरी एवं ऋण समय-सीमा (Timeline)\n" + str(report.get('job_and_debt_timeline', '')))
+    md.append("\n## 3. विवाह एवं नवमांश विश्लेषण (D-9 Analysis)\n" + str(report.get('marriage_d9_analysis', '')))
+    md.append("\n## 4. संतान एवं सप्तमांश विश्लेषण (D-7 Analysis)\n" + str(report.get('children_d7_analysis', '')))
+
+    md.append("\n## 5. आगामी 1-वर्ष का त्रैमासिक विवरण (Quarterly Breakdown)\n")
+    for q in report.get('quarterly_breakdown', []):
+        md.append(f"### {q.get('quarter', '')} — {q.get('period', '')}")
+        md.append(f"**करियर (Career):** {q.get('career', '')}")
+        md.append(f"**वित्त (Finance):** {q.get('finance', '')}")
+        md.append(f"**ऋण (Debt):** {q.get('debt', '')}")
+        md.append(f"**संबंध (Relationship):** {q.get('relationship', '')}")
+        md.append(f"**गोचर (Important Transits):** {q.get('important_transits', '')}")
+        md.append(f"**व्यावहारिक सलाह (Practical Advice):** {q.get

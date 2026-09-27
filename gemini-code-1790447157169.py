@@ -16,12 +16,12 @@ st.set_page_config(
 )
 
 APP_NAME = "Astro-Vastu AI Report Generator"
-APP_VERSION = "3.5 (Fixed String Quotes & Model Fallback)"
+APP_VERSION = "4.0 (Updated Active Gemini Models)"
 
-# Active Stable Models
-PRIMARY_MODEL = "gemini-2.5-flash"
-FALLBACK_MODEL_1 = "gemini-2.5-pro"
-FALLBACK_MODEL_2 = "gemini-2.0-flash"
+# Updated Active Models
+PRIMARY_MODEL = "gemini-3.8-flash"
+FALLBACK_MODEL_1 = "gemini-2.5-flash"
+FALLBACK_MODEL_2 = "gemini-2.5-pro"
 
 MAX_PDF_SIZE_MB = 50
 
@@ -281,7 +281,7 @@ def report_to_markdown(report):
     for item in report.get('limitations', []):
         md.append("- " + str(item))
 
-    md.append("\n---\n*यह रिपोर्ट आचार्य विजय कृष्ण शास्त्री एस्ट्रो-वास्तु मार्गदर्शन पद्धति पर आधारित है।*")
+    md.append("\n---\n*यह रिपोर्ट आचार्य विजय कृष्ण शास्त्री एस्ट्रो-वास्तु मार्गदर्शन पद्धति पर आधारित है।_*")
     return "\n".join(md)
 
 
@@ -388,23 +388,4 @@ if st.session_state.authenticated:
                         chat_prompt = (
                             "Tum Acharya Vijay Krishna Shastri ke Astro-Vastu assistant ho.\n"
                             "Niche di gayi Kundli Extraction Data aur Report ke aadhar par user ke sawal ka saral, spashth aur accurate uttar HINDI (Devnagri) me do.\n\n"
-                            "KUNDLI DATA:\n" + json.dumps(st.session_state['extraction_data'], ensure_ascii=False) + "\n\n"
-                            "REPORT DATA:\n" + json.dumps(st.session_state['final_report'], ensure_ascii=False) + "\n\n"
-                            "USER QUESTION: " + str(user_question)
-                        )
-
-                        response = call_gemini_with_fallback(
-                            client=client,
-                            contents=chat_prompt,
-                            config=None
-                        )
-
-                        answer = response.text if response and response.text else "क्षमा करें, उत्तर प्राप्त नहीं हो सका।"
-                        st.write(answer)
-                        st.session_state.chat_history.append({"role": "assistant", "content": answer})
-
-                    except Exception as chat_err:
-                        st.error("Sawal ka uttar dene me error aaya: " + str(chat_err))
-
-else:
-    st.info("Report generate karne ke liye sidebar mein valid Student Passcode enter karein.")
+                            "KUNDLI DATA:\n" + json.dumps

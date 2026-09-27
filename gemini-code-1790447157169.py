@@ -2,6 +2,7 @@ import json
 import streamlit as st
 
 from google import genai
+from google.genai import types
 
 # ============================================================
 # STREAMLIT CONFIG
@@ -14,7 +15,7 @@ st.set_page_config(
 )
 
 APP_NAME = "Astro-Vastu AI Report Generator"
-APP_VERSION = "2.1 (JSON Repair Fix)"
+APP_VERSION = "2.2 (PDF Part Fix)"
 GEMINI_MODEL = "gemini-2.5-flash"
 MAX_PDF_SIZE_MB = 50
 
@@ -91,7 +92,7 @@ def parse_gemini_json(text):
 
 
 # ============================================================
-# STEP 1 — KUNDLI EXTRACTION
+# STEP 1 — KUNDLI EXTRACTION (FIXED PDF PART FORMAT)
 # ============================================================
 
 def extract_kundli_data(pdf_bytes, past_events):
@@ -154,12 +155,15 @@ Return ONLY valid JSON with this exact structure:
 }}
 """
 
+    # Sahi PDF Part Object yahan create ho raha hai
+    pdf_part = types.Part.from_bytes(
+        data=pdf_bytes,
+        mime_type="application/pdf"
+    )
+
     response = client.models.generate_content(
         model=GEMINI_MODEL,
-        contents=[
-            {"mime_type": "application/pdf", "data": pdf_bytes},
-            prompt
-        ],
+        contents=[pdf_part, prompt],
         config={"response_mime_type": "application/json"}
     )
 
@@ -289,43 +293,3 @@ if student_code:
         st.sidebar.success("Passcode Verified")
     else:
         st.session_state.authenticated = False
-        st.sidebar.error(res["message"])
-
-if st.session_state.authenticated:
-    uploaded_file = st.file_uploader("📄 Upload Kundli PDF", type=["pdf"])
-    past_events = st.text_area("📝 Enter Past Events & Main Query", height=180)
-
-    if st.button("🚀 Generate Astro-Vastu Precision Report", type="primary"):
-        if not uploaded_file or not past_events.strip():
-            st.error("Please PDF aur Past Events dono fill karein.")
-            st.stop()
-
-        try:
-            pdf_bytes = validate_pdf(uploaded_file)
-
-            with st.spinner("Step 1/2 — Extracting structured data..."):
-                extraction = extract_kundli_data(pdf_bytes, past_events)
-
-            with st.expander("🔍 View Extracted Data"):
-                st.json(extraction)
-
-            with st.spinner("Step 2/2 — Generating report..."):
-                final_report = generate_final_report(extraction, past_events)
-
-            st.success("Report Generated Successfully!")
-
-            md_report = report_to_markdown(final_report)
-            st.markdown(md_report)
-
-            st.download_button(
-                "📥 Download Markdown Report",
-                data=md_report,
-                file_name="Astro_Vastu_Report.md",
-                mime="text/markdown"
-            )
-
-        except Exception as e:
-            st.error(f"Report generation failed: {str(e)}")
-
-else:
-    st.info("Report generate karne ke liye Passcode enter karein.")

@@ -18,11 +18,10 @@ st.set_page_config(
 APP_NAME = "Astro-Vastu AI Report Generator"
 APP_VERSION = "4.1 (Fixed Syntax & Active Gemini Models)"
 
-# Active Models
+# Active & Supported Gemini Models (Google GenAI SDK Format)
 PRIMARY_MODEL = "gemini-2.5-flash"
 FALLBACK_MODEL_1 = "gemini-2.5-pro"
-FALLBACK_MODEL_2 = "gemini-1.5-flash"
-
+FALLBACK_MODEL_2 = "gemini-2.0-flash"
 MAX_PDF_SIZE_MB = 50
 
 

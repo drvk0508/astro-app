@@ -1241,4 +1241,3 @@ else:
         6. Technical failure hone par credit refund hoga
         """
     )
-```

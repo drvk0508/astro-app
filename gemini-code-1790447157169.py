@@ -1,11 +1,12 @@
 import json
+import time
 import streamlit as st
 
 from google import genai
 from google.genai import types
 
 # ============================================================
-# STREAMLIT CONFIG & MODEL SELECTION
+# STREAMLIT CONFIG & CONSTANTS
 # ============================================================
 
 st.set_page_config(
@@ -15,8 +16,13 @@ st.set_page_config(
 )
 
 APP_NAME = "Astro-Vastu AI Report Generator"
-APP_VERSION = "2.8 (Model Name Fix)"
-GEMINI_MODEL = "gemini-3.8-flash"  # <--- Updated model name
+APP_VERSION = "3.1 (Multi-Model Fallback + Hindi Devnagri + Chat)"
+
+# Primary aur Fallback Backup Models
+PRIMARY_MODEL = "gemini-3.8-flash"
+FALLBACK_MODEL_1 = "gemini-1.5-flash"
+FALLBACK_MODEL_2 = "gemini-1.5-pro"
+
 MAX_PDF_SIZE_MB = 50
 
 
@@ -48,6 +54,41 @@ def verify_passcode(passcode):
 
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
+
+
+# ============================================================
+# MULTI-MODEL FALLBACK & RETRY API CALLER
+# ============================================================
+
+def call_gemini_with_fallback(client, contents, config):
+    """
+    Pehle primary model (gemini-3.8-flash) par try karta hai.
+    Agar vo busy ya unavailable (503/404) ho, toh fallback models par switch kar leta hai.
+    """
+    models_to_try = [PRIMARY_MODEL, FALLBACK_MODEL_1, FALLBACK_MODEL_2]
+    last_exception = None
+
+    for model_name in models_to_try:
+        for attempt in range(2):  # Har model ko 2 retries
+            try:
+                response = client.models.generate_content(
+                    model=model_name,
+                    contents=contents,
+                    config=config
+                )
+                if response and response.text:
+                    return response
+            except Exception as e:
+                last_exception = e
+                error_str = str(e)
+                # Agar model busy ya temporary server issue ho, toh wait karke retry karein
+                if "503" in error_str or "UNAVAILABLE" in error_str or "429" in error_str:
+                    time.sleep(2)
+                    continue
+                # Agar 404/Unavailable error ho toh agle backup model par shift ho jayein
+                break
+
+    raise RuntimeError(f"Sabhi AI models busy hain ya error aaya: {str(last_exception)}")
 
 
 # ============================================================
@@ -152,111 +193,106 @@ def extract_kundli_data(client, pdf_bytes, past_events):
         mime_type="application/pdf"
     )
 
-    response = client.models.generate_content(
-        model=GEMINI_MODEL,
+    response = call_gemini_with_fallback(
+        client=client,
         contents=[pdf_part, prompt],
         config={"response_mime_type": "application/json"}
     )
-
-    if not response.text:
-        raise RuntimeError("Gemini ne Step-1 me koi response nahi diya.")
 
     return parse_gemini_json(response.text)
 
 
 # ============================================================
-# STEP 2 — FINAL REPORT
+# STEP 2 — FINAL HINDI REPORT
 # ============================================================
 
 def generate_final_report(client, extraction, past_events):
     extraction_str = json.dumps(extraction, ensure_ascii=False, indent=2)
     prompt = (
         "Tum Acharya Vijay Krishna Shastri ke Astro-Vastu research assistant ho.\n"
-        "Extracted Kundli data ke aadhar par final research report taiyar karo.\n"
+        "Extracted Kundli data ke aadhar par final research report PURE HINDI (DEVNAGRI SCRIPT - देवनागरी) me taiyar karo.\n"
+        "English alphabets ka prayog kewal technical terms ya dates ke liye hi karein. Baaki poora text Hindi (Devnagri) me hona chahiye.\n"
         "ONLY VALID JSON RETURN KARO.\n\n"
         "CLIENT QUERY / EVENTS:\n" + str(past_events) + "\n\n"
         "EXTRACTED DATA:\n" + extraction_str + "\n\n"
         "Return ONLY valid JSON with this exact structure:\n"
         "{\n"
-        '  "report_title": "Astro-Vastu Precision Report",\n'
-        '  "executive_summary": "...",\n'
-        '  "data_quality_note": "...",\n'
-        '  "career_and_finance_cause": "...",\n'
-        '  "job_and_debt_timeline": "...",\n'
-        '  "marriage_d9_analysis": "...",\n'
-        '  "children_d7_analysis": "...",\n'
+        '  "report_title": "एस्ट्रो-वास्तु शोध रिपोर्ट",\n'
+        '  "executive_summary": "हिंदी में...",\n'
+        '  "data_quality_note": "हिंदी में...",\n'
+        '  "career_and_finance_cause": "हिंदी में...",\n'
+        '  "job_and_debt_timeline": "हिंदी में...",\n'
+        '  "marriage_d9_analysis": "हिंदी में...",\n'
+        '  "children_d7_analysis": "हिंदी में...",\n'
         '  "quarterly_breakdown": [\n'
         "    {\n"
         '      "quarter": "Q1",\n'
-        '      "period": "Jan-Mar",\n'
-        '      "career": "...",\n'
-        '      "finance": "...",\n'
-        '      "debt": "...",\n'
-        '      "relationship": "...",\n'
-        '      "important_transits": "...",\n'
-        '      "practical_advice": "..."\n'
+        '      "period": "जनवरी - मार्च",\n'
+        '      "career": "हिंदी में...",\n'
+        '      "finance": "हिंदी में...",\n'
+        '      "debt": "हिंदी में...",\n'
+        '      "relationship": "हिंदी में...",\n'
+        '      "important_transits": "हिंदी में...",\n'
+        '      "practical_advice": "हिंदी में..."\n'
         "    }\n"
         "  ],\n"
-        '  "vastu_improvements": ["Remedy 1", "Remedy 2"],\n'
-        '  "spiritual_remedies": ["Remedy 1", "Remedy 2"],\n'
-        '  "important_dates": ["Date 1", "Date 2"],\n'
-        '  "limitations": ["Limitation 1"]\n'
+        '  "vastu_improvements": ["वास्तु उपाय 1", "वास्तु उपाय 2"],\n'
+        '  "spiritual_remedies": ["यंत्र व आध्यात्मिक उपाय 1", "उपाय 2"],\n'
+        '  "important_dates": ["महत्वपूर्ण तिथि 1", "महत्वपूर्ण तिथि 2"],\n'
+        '  "limitations": ["सीमा 1"]\n'
         "}\n"
     )
 
-    response = client.models.generate_content(
-        model=GEMINI_MODEL,
+    response = call_gemini_with_fallback(
+        client=client,
         contents=prompt,
         config={"response_mime_type": "application/json"}
     )
-
-    if not response.text:
-        raise RuntimeError("Gemini ne Step-2 me koi response nahi diya.")
 
     return parse_gemini_json(response.text)
 
 
 # ============================================================
-# MARKDOWN FORMATTER
+# MARKDOWN FORMATTER (HINDI)
 # ============================================================
 
 def report_to_markdown(report):
     md = []
-    md.append(f"# {report.get('report_title', 'Astro-Vastu Precision Report')}")
-    md.append("\n## Executive Summary\n" + str(report.get('executive_summary', '')))
-    md.append("\n## Data Quality Note\n" + str(report.get('data_quality_note', '')))
-    md.append("\n## 1. Career & Financial Situation\n" + str(report.get('career_and_finance_cause', '')))
-    md.append("\n## 2. Job / Career / Debt Timeline\n" + str(report.get('job_and_debt_timeline', '')))
-    md.append("\n## 3. Marriage — D-9 Analysis\n" + str(report.get('marriage_d9_analysis', '')))
-    md.append("\n## 4. Children — D-7 Analysis\n" + str(report.get('children_d7_analysis', '')))
+    md.append(f"# {report.get('report_title', 'एस्ट्रो-वास्तु शोध रिपोर्ट')}")
+    md.append("\n## कार्यपालक सारांश (Executive Summary)\n" + str(report.get('executive_summary', '')))
+    md.append("\n## डेटा गुणवत्ता नोट (Data Quality Note)\n" + str(report.get('data_quality_note', '')))
+    md.append("\n## 1. करियर एवं वित्तीय स्थिति (Career & Finance)\n" + str(report.get('career_and_finance_cause', '')))
+    md.append("\n## 2. नौकरी एवं ऋण समय-सीमा (Timeline)\n" + str(report.get('job_and_debt_timeline', '')))
+    md.append("\n## 3. विवाह एवं नवमांश विश्लेषण (D-9 Analysis)\n" + str(report.get('marriage_d9_analysis', '')))
+    md.append("\n## 4. संतान एवं सप्तमांश विश्लेषण (D-7 Analysis)\n" + str(report.get('children_d7_analysis', '')))
 
-    md.append("\n## 5. Upcoming 1-Year Quarterly Breakdown\n")
+    md.append("\n## 5. आगामी 1-वर्ष का त्रैमासिक विवरण (Quarterly Breakdown)\n")
     for q in report.get('quarterly_breakdown', []):
         md.append(f"### {q.get('quarter', '')} — {q.get('period', '')}")
-        md.append(f"**Career:** {q.get('career', '')}")
-        md.append(f"**Finance:** {q.get('finance', '')}")
-        md.append(f"**Debt:** {q.get('debt', '')}")
-        md.append(f"**Relationship:** {q.get('relationship', '')}")
-        md.append(f"**Important Transits:** {q.get('important_transits', '')}")
-        md.append(f"**Practical Advice:** {q.get('practical_advice', '')}\n")
+        md.append(f"**करियर (Career):** {q.get('career', '')}")
+        md.append(f"**वित्त (Finance):** {q.get('finance', '')}")
+        md.append(f"**ऋण (Debt):** {q.get('debt', '')}")
+        md.append(f"**संबंध (Relationship):** {q.get('relationship', '')}")
+        md.append(f"**गोचर (Important Transits):** {q.get('important_transits', '')}")
+        md.append(f"**व्यावहारिक सलाह (Practical Advice):** {q.get('practical_advice', '')}\n")
 
-    md.append("## 6. Practical Vastu Improvements\n")
+    md.append("## 6. व्यावहारिक वास्तु संशोधन (Vastu Remedies)\n")
     for item in report.get('vastu_improvements', []):
         md.append(f"- {item}")
 
-    md.append("\n## 7. Spiritual / Yantra Remedies\n")
+    md.append("\n## 7. आध्यात्मिक एवं यंत्र उपाय (Spiritual & Yantra Remedies)\n")
     for item in report.get('spiritual_remedies', []):
         md.append(f"- {item}")
 
-    md.append("\n## 8. Important Dates\n")
+    md.append("\n## 8. महत्वपूर्ण तिथियां (Important Dates)\n")
     for item in report.get('important_dates', []):
         md.append(f"- {item}")
 
-    md.append("\n## 9. Limitations\n")
+    md.append("\n## 9. सीमाएं एवं सावधानियां (Limitations)\n")
     for item in report.get('limitations', []):
         md.append(f"- {item}")
 
-    md.append("\n---\n*This report is an interpretive Astro-Vastu guidance document.*")
+    md.append("\n---\n*यह रिपोर्ट आचार्य विजय कृष्ण शास्त्री एस्ट्रो-वास्तु मार्गदर्शन पद्धति पर आधारित है।*")
     return "\n".join(md)
 
 
@@ -265,7 +301,7 @@ def report_to_markdown(report):
 # ============================================================
 
 st.title("🔮 Astro-Vastu AI Report Generator")
-st.subheader("Acharya Vijay Krishna Shastri Special Framework")
+st.subheader("आचार्य विजय कृष्ण शास्त्री विशेष फ्रेमवर्क")
 
 st.sidebar.header("🔑 Student Authentication")
 student_code = st.sidebar.text_input("Enter Student Passcode", type="password")
@@ -293,7 +329,7 @@ if st.session_state.authenticated:
         placeholder="Example:\nDATE OF MARRIAGE: 11 NOV 1997\nDATE OF BIRTH OF SON: 06 MAY 1999\n\nMain Query: Career and finance outlook."
     )
 
-    if st.button("🚀 Generate Astro-Vastu Precision Report", type="primary"):
+    if st.button("🚀 Generate Hindi Astro-Vastu Report", type="primary"):
         if not uploaded_file:
             st.error("Please Kundli PDF upload karein.")
             st.stop()
@@ -306,31 +342,29 @@ if st.session_state.authenticated:
             client = get_gemini_client()
             pdf_bytes = validate_pdf(uploaded_file)
 
-            with st.spinner("Step 1/2 — Extracting structured data from Kundli PDF..."):
+            with st.spinner("चरण 1/2 — कुंडली से डाटा निकाला जा रहा है (Auto-Fallback Protected)..."):
                 extraction = extract_kundli_data(client, pdf_bytes, past_events)
 
-            st.success("Step 1 completed — Kundli data extracted.")
+            st.success("चरण 1 पूर्ण — कुंडली डेटा सफलतापूर्वक निकाला गया।")
 
-            with st.expander("🔍 View Extracted Kundli Data"):
+            with st.expander("🔍 View Extracted Kundli Data (JSON)"):
                 st.json(extraction)
 
-            with st.spinner("Step 2/2 — Preparing Astro-Vastu report..."):
+            with st.spinner("चरण 2/2 — हिंदी एस्ट्रो-वास्तु रिपोर्ट तैयार की जा रही है..."):
                 final_report = generate_final_report(client, extraction, past_events)
 
-            st.success("Astro-Vastu Report Generated Successfully!")
-
-            markdown_report = report_to_markdown(final_report)
-            st.markdown(markdown_report)
-
-            st.download_button(
-                label="📥 Download Report as Markdown",
-                data=markdown_report,
-                file_name="Astro_Vastu_Report.md",
-                mime="text/markdown"
-            )
+            st.session_state['extraction_data'] = extraction
+            st.session_state['final_report'] = final_report
+            st.session_state['chat_history'] = []
+            st.success("हिंदी एस्ट्रो-वास्तु रिपोर्ट सफलतापूर्वक तैयार हो गई है!")
 
         except Exception as e:
             st.error(f"Report generation failed: {str(e)}")
 
-else:
-    st.info("Report generate karne ke liye sidebar mein valid Student Passcode enter karein.")
+    # ============================================================
+    # REPORT DISPLAY & FOLLOW-UP CHAT SECTION
+    # ============================================================
+
+    if "final_report" in st.session_state:
+        st.markdown("---")
+        markdown_report = report_to_markdown

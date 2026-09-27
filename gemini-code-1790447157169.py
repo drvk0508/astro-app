@@ -12,45 +12,19 @@ from google.genai import types
 st.set_page_config(
     page_title="Astro-Vastu AI Portal",
     page_icon="🔮",
-    layout="centered"
+    layout="centered",
+    initial_sidebar_state="expanded"
 )
 
 APP_NAME = "Astro-Vastu AI Report Generator"
-APP_VERSION = "4.1 (Fixed Syntax & Active Gemini Models)"
+APP_VERSION = "4.2 (Fixed Indentation & Defined Constants)"
 
-# ============================================================
-# ACTIVE GEMINI MODELS
-# ============================================================
-
-# Official recommended model
+# Active Supported Gemini Models
 PRIMARY_MODEL = "gemini-2.5-flash"
 FALLBACK_MODEL_1 = "gemini-2.5-pro"
 FALLBACK_MODEL_2 = "gemini-1.5-pro"
 
-
-# ============================================================
-# MULTI-MODEL FALLBACK & RETRY API CALLER
-# ============================================================
-
-def call_gemini_with_fallback(client, contents, config):
-    # Models array list without any 'models/' prefix
-    models_to_try = [PRIMARY_MODEL, FALLBACK_MODEL_1, FALLBACK_MODEL_2]
-    last_exception = None
-
-    for model_name in models_to_try:
-        try:
-            response = client.models.generate_content(
-                model=model_name,
-                contents=contents,
-                config=config
-            )
-            if response and response.text:
-                return response
-        except Exception as e:
-            last_exception = e
-            continue
-
-    raise RuntimeError(f"Sabhi AI models busy hain ya error aaya: {str(last_exception)}")
+MAX_PDF_SIZE_MB = 50
 
 
 # ============================================================
@@ -122,7 +96,7 @@ def validate_pdf(uploaded_file):
     if not pdf_bytes or len(pdf_bytes) == 0:
         raise ValueError("Uploaded PDF khali hai.")
 
-    if (len(pdf_bytes) / (1024 * 1024)) > MAX_PDF_SIZE_MB:50
+    if (len(pdf_bytes) / (1024 * 1024)) > MAX_PDF_SIZE_MB:
         raise ValueError("PDF file 50 MB se chhoti honi chahiye.")
 
     return pdf_bytes
@@ -314,7 +288,7 @@ def report_to_markdown(report):
     for item in report.get('limitations', []):
         md.append("- " + str(item))
 
-    md.append("\n---\n*यह रिपोर्ट आचार्य विजय कृष्ण शास्त्री एस्ट्रो-वास्तु मार्गदर्शन पद्धति पर आधारित है।*")
+    md.append("\n---\n*यह रिपोर्ट आचार्य विजय कृष्ण शास्त्री एस्ट्रो-वास्तु मार्गदर्शन पद्धति पर आधारित है।_*")
     return "\n".join(md)
 
 
@@ -446,4 +420,4 @@ USER QUESTION: {user_question}"""
                         st.error("Sawal ka uttar dene me error aaya: " + str(chat_err))
 
 else:
-    st.info("Report generate karne ke liye sidebar mein valid Student Passcode enter karein.")
+    st.info("👈 Please Left Sidebar open karke Student Passcode enter karein.")

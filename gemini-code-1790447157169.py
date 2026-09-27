@@ -16,12 +16,12 @@ st.set_page_config(
 )
 
 APP_NAME = "Astro-Vastu AI Report Generator"
-APP_VERSION = "4.0 (Updated Active Gemini Models)"
+APP_VERSION = "4.1 (Fixed Syntax & Active Gemini Models)"
 
-# Updated Active Models
-PRIMARY_MODEL = "gemini-3.8-flash"
-FALLBACK_MODEL_1 = "gemini-2.5-flash"
-FALLBACK_MODEL_2 = "gemini-2.5-pro"
+# Active Models
+PRIMARY_MODEL = "gemini-2.5-flash"
+FALLBACK_MODEL_1 = "gemini-2.5-pro"
+FALLBACK_MODEL_2 = "gemini-1.5-flash"
 
 MAX_PDF_SIZE_MB = 50
 
@@ -121,61 +121,63 @@ def parse_gemini_json(text):
 # ============================================================
 
 def extract_kundli_data(client, pdf_bytes, past_events):
-    prompt = (
-        "Tum ek expert Astro-Vastu research data extraction assistant ho.\n"
-        "PDF se sabhi astrological details dhyan se extract karo aur NICHE DIYE GAYE FORMAT MEIN STRICT VALID JSON RETURN KARO.\n\n"
-        "CLIENT PAST EVENTS / QUERY:\n" + str(past_events) + "\n\n"
-        "Return ONLY valid JSON with this exact structure:\n"
-        "{\n"
-        '  "extraction_status": "Success / Partial",\n'
-        '  "birth_details": "DOB, Time, Place",\n'
-        '  "current_dasha": {\n'
-        '    "mahadasha": "",\n'
-        '    "antardasha": "",\n'
-        '    "pratyantar_dasha": "",\n'
-        '    "sukshma_dasha": "",\n'
-        '    "start_date": "",\n'
-        '    "end_date": ""\n'
-        "  },\n"
-        '  "planet_positions": [\n'
-        "    {\n"
-        '      "planet": "Sun",\n'
-        '      "degree": "",\n'
-        '      "rashi": "",\n'
-        '      "bhava": "",\n'
-        '      "nakshatra": "",\n'
-        '      "pada": "",\n'
-        '      "retrograde": "Yes/No"\n'
-        "    }\n"
-        "  ],\n"
-        '  "ashtakavarga": {\n'
-        '    "sixth_house": "",\n'
-        '    "seventh_house": "",\n'
-        '    "tenth_house": "",\n'
-        '    "eleventh_house": ""\n'
-        "  },\n"
-        '  "divisional_charts": [\n'
-        "    {\n"
-        '      "chart": "D-1",\n'
-        '      "ascendant": "",\n'
-        '      "important_planets": [],\n'
-        '      "observations": []\n'
-        "    }\n"
-        "  ],\n"
-        '  "kp_data_available": false,\n'
-        '  "kp_observations": [],\n'
-        '  "past_event_verification": [\n'
-        "    {\n"
-        '      "event": "",\n'
-        '      "date_or_age": "",\n'
-        '      "verification": "Yes/No/Unclear",\n'
-        '      "astrological_reason": ""\n'
-        "    }\n"
-        "  ],\n"
-        '  "missing_information": [],\n'
-        '  "warnings": []\n'
-        "}\n"
-    )
+    prompt = f"""Tum ek expert Astro-Vastu research data extraction assistant ho.
+PDF se sabhi astrological details dhyan se extract karo aur NICHE DIYE GAYE FORMAT MEIN STRICT VALID JSON RETURN KARO.
+
+CLIENT PAST EVENTS / QUERY:
+{past_events}
+
+Return ONLY valid JSON with this exact structure:
+{{
+  "extraction_status": "Success / Partial",
+  "birth_details": "DOB, Time, Place",
+  "current_dasha": {{
+    "mahadasha": "",
+    "antardasha": "",
+    "pratyantar_dasha": "",
+    "sukshma_dasha": "",
+    "start_date": "",
+    "end_date": ""
+  }},
+  "planet_positions": [
+    {{
+      "planet": "Sun",
+      "degree": "",
+      "rashi": "",
+      "bhava": "",
+      "nakshatra": "",
+      "pada": "",
+      "retrograde": "Yes/No"
+    }}
+  ],
+  "ashtakavarga": {{
+    "sixth_house": "",
+    "seventh_house": "",
+    "tenth_house": "",
+    "eleventh_house": ""
+  }},
+  "divisional_charts": [
+    {{
+      "chart": "D-1",
+      "ascendant": "",
+      "important_planets": [],
+      "observations": []
+    }}
+  ],
+  "kp_data_available": false,
+  "kp_observations": [],
+  "past_event_verification": [
+    {{
+      "event": "",
+      "date_or_age": "",
+      "verification": "Yes/No/Unclear",
+      "astrological_reason": ""
+    }}
+  ],
+  "missing_information": [],
+  "warnings": []
+}}
+"""
 
     pdf_part = types.Part.from_bytes(
         data=pdf_bytes,
@@ -197,40 +199,44 @@ def extract_kundli_data(client, pdf_bytes, past_events):
 
 def generate_final_report(client, extraction, past_events):
     extraction_str = json.dumps(extraction, ensure_ascii=False, indent=2)
-    prompt = (
-        "Tum Acharya Vijay Krishna Shastri ke Astro-Vastu research assistant ho.\n"
-        "Extracted Kundli data ke aadhar par final research report PURE HINDI (DEVNAGRI SCRIPT - देवनागरी) me taiyar karo.\n"
-        "English alphabets ka prayog kewal technical terms ya dates ke liye hi karein. Baaki poora text Hindi (Devnagri) me hona chahiye.\n"
-        "ONLY VALID JSON RETURN KARO.\n\n"
-        "CLIENT QUERY / EVENTS:\n" + str(past_events) + "\n\n"
-        "EXTRACTED DATA:\n" + extraction_str + "\n\n"
-        "Return ONLY valid JSON with this exact structure:\n"
-        "{\n"
-        '  "report_title": "एस्ट्रो-वास्तु शोध रिपोर्ट",\n'
-        '  "executive_summary": "हिंदी में...",\n'
-        '  "data_quality_note": "हिंदी में...",\n'
-        '  "career_and_finance_cause": "हिंदी में...",\n'
-        '  "job_and_debt_timeline": "हिंदी में...",\n'
-        '  "marriage_d9_analysis": "हिंदी में...",\n'
-        '  "children_d7_analysis": "हिंदी में...",\n'
-        '  "quarterly_breakdown": [\n'
-        "    {\n"
-        '      "quarter": "Q1",\n'
-        '      "period": "जनवरी - मार्च",\n'
-        '      "career": "हिंदी में...",\n'
-        '      "finance": "हिंदी में...",\n'
-        '      "debt": "हिंदी में...",\n'
-        '      "relationship": "हिंदी में...",\n'
-        '      "important_transits": "हिंदी में...",\n'
-        '      "practical_advice": "हिंदी में..."\n'
-        "    }\n"
-        "  ],\n"
-        '  "vastu_improvements": ["वास्तु उपाय 1", "वास्तु उपाय 2"],\n'
-        '  "spiritual_remedies": ["यंत्र व आध्यात्मिक उपाय 1", "उपाय 2"],\n'
-        '  "important_dates": ["महत्वपूर्ण तिथि 1", "महत्वपूर्ण तिथि 2"],\n'
-        '  "limitations": ["सीमा 1"]\n'
-        "}\n"
-    )
+    prompt = f"""Tum Acharya Vijay Krishna Shastri ke Astro-Vastu research assistant ho.
+Extracted Kundli data ke aadhar par final research report PURE HINDI (DEVNAGRI SCRIPT - देवनागरी) me taiyar karo.
+English alphabets ka prayog kewal technical terms ya dates ke liye hi karein. Baaki poora text Hindi (Devnagri) me hona chahiye.
+ONLY VALID JSON RETURN KARO.
+
+CLIENT QUERY / EVENTS:
+{past_events}
+
+EXTRACTED DATA:
+{extraction_str}
+
+Return ONLY valid JSON with this exact structure:
+{{
+  "report_title": "एस्ट्रो-वास्तु शोध रिपोर्ट",
+  "executive_summary": "हिंदी में...",
+  "data_quality_note": "हिंदी में...",
+  "career_and_finance_cause": "हिंदी में...",
+  "job_and_debt_timeline": "हिंदी में...",
+  "marriage_d9_analysis": "हिंदी में...",
+  "children_d7_analysis": "हिंदी में...",
+  "quarterly_breakdown": [
+    {{
+      "quarter": "Q1",
+      "period": "जनवरी - मार्च",
+      "career": "हिंदी में...",
+      "finance": "हिंदी में...",
+      "debt": "हिंदी में...",
+      "relationship": "हिंदी में...",
+      "important_transits": "हिंदी में...",
+      "practical_advice": "हिंदी में..."
+    }}
+  ],
+  "vastu_improvements": ["वास्तु उपाय 1", "वास्तु उपाय 2"],
+  "spiritual_remedies": ["यंत्र व आध्यात्मिक उपाय 1", "उपाय 2"],
+  "important_dates": ["महत्वपूर्ण तिथि 1", "महत्वपूर्ण तिथि 2"],
+  "limitations": ["सीमा 1"]
+}}
+"""
 
     response = call_gemini_with_fallback(
         client=client,
@@ -281,7 +287,7 @@ def report_to_markdown(report):
     for item in report.get('limitations', []):
         md.append("- " + str(item))
 
-    md.append("\n---\n*यह रिपोर्ट आचार्य विजय कृष्ण शास्त्री एस्ट्रो-वास्तु मार्गदर्शन पद्धति पर आधारित है।_*")
+    md.append("\n---\n*यह रिपोर्ट आचार्य विजय कृष्ण शास्त्री एस्ट्रो-वास्तु मार्गदर्शन पद्धति पर आधारित है।*")
     return "\n".join(md)
 
 
@@ -290,102 +296,4 @@ def report_to_markdown(report):
 # ============================================================
 
 st.title("🔮 Astro-Vastu AI Report Generator")
-st.subheader("आचार्य विजय कृष्ण शास्त्री विशेष फ्रेमवर्क")
-
-st.sidebar.header("🔑 Student Authentication")
-student_code = st.sidebar.text_input("Enter Student Passcode", type="password")
-
-if student_code:
-    if verify_passcode(student_code):
-        st.session_state.authenticated = True
-        st.sidebar.success("Passcode Verified")
-    else:
-        st.session_state.authenticated = False
-        st.sidebar.error("Invalid Passcode!")
-
-
-# ============================================================
-# MAIN APPLICATION INTERFACE
-# ============================================================
-
-if st.session_state.authenticated:
-    st.success("Student authentication successful.")
-
-    uploaded_file = st.file_uploader("📄 Upload Kundli PDF", type=["pdf"])
-    past_events = st.text_area(
-        "📝 Enter Past Events & Main Query",
-        height=180,
-        placeholder="Example:\nDATE OF MARRIAGE: 11 NOV 1997\nDATE OF BIRTH OF SON: 06 MAY 1999\n\nMain Query: Career and finance outlook."
-    )
-
-    if st.button("🚀 Generate Hindi Astro-Vastu Report", type="primary"):
-        if not uploaded_file:
-            st.error("Please Kundli PDF upload karein.")
-            st.stop()
-
-        if not past_events.strip():
-            st.error("Please Past Events / Query enter karein.")
-            st.stop()
-
-        try:
-            client = get_gemini_client()
-            pdf_bytes = validate_pdf(uploaded_file)
-
-            with st.spinner("चरण 1/2 — कुंडली से डाटा निकाला जा रहा है..."):
-                extraction = extract_kundli_data(client, pdf_bytes, past_events)
-
-            st.success("चरण 1 पूर्ण — कुंडली डेटा सफलतापूर्वक निकाला गया।")
-
-            with st.expander("🔍 View Extracted Kundli Data (JSON)"):
-                st.json(extraction)
-
-            with st.spinner("चरण 2/2 — हिंदी एस्ट्रो-वास्तु रिपोर्ट तैयार की जा रही है..."):
-                final_report = generate_final_report(client, extraction, past_events)
-
-            st.session_state['extraction_data'] = extraction
-            st.session_state['final_report'] = final_report
-            st.session_state['chat_history'] = []
-            st.success("हिंदी एस्ट्रो-वास्तु रिपोर्ट सफलतापूर्वक तैयार हो गई है!")
-
-        except Exception as e:
-            st.error("Report generation failed: " + str(e))
-
-    # ============================================================
-    # REPORT DISPLAY & FOLLOW-UP CHAT SECTION
-    # ============================================================
-
-    if "final_report" in st.session_state:
-        st.markdown("---")
-        markdown_report = report_to_markdown(st.session_state['final_report'])
-        st.markdown(markdown_report)
-
-        st.download_button(
-            label="📥 Download Hindi Report (Markdown)",
-            data=markdown_report,
-            file_name="Hindi_Astro_Vastu_Report.md",
-            mime="text/markdown"
-        )
-
-        st.markdown("---")
-        st.header("💬 अपनी कुंडली के बारे में सवाल पूछें (Ask Questions)")
-        st.write("रिपोर्ट और कुंडली के आधार पर आप नीचे कोई भी प्रश्न हिंदी या Hinglish में पूछ सकते हैं:")
-
-        for msg in st.session_state.get('chat_history', []):
-            with st.chat_message(msg["role"]):
-                st.write(msg["content"])
-
-        user_question = st.chat_input("अपना प्रश्न यहाँ लिखें (उदा: क्या मुझे व्यापार में सफलता मिलेगी?)...")
-
-        if user_question:
-            st.session_state.chat_history.append({"role": "user", "content": user_question})
-            with st.chat_message("user"):
-                st.write(user_question)
-
-            with st.chat_message("assistant"):
-                with st.spinner("आचार्य जी विश्लेषण कर रहे हैं..."):
-                    try:
-                        client = get_gemini_client()
-                        chat_prompt = (
-                            "Tum Acharya Vijay Krishna Shastri ke Astro-Vastu assistant ho.\n"
-                            "Niche di gayi Kundli Extraction Data aur Report ke aadhar par user ke sawal ka saral, spashth aur accurate uttar HINDI (Devnagri) me do.\n\n"
-                            "KUNDLI DATA:\n" + json.dumps
+st.subheader("आचार्य विजय कृष्ण शास्त्री विशेष फ्रेमवर्क

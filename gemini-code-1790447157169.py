@@ -297,3 +297,4 @@ def report_to_markdown(report):
 
 st.title("🔮 Astro-Vastu AI Report Generator")
 st.subheader("आचार्य विजय कृष्ण शास्त्री")
+

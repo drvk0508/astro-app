@@ -26,7 +26,6 @@ APP_VERSION = "4.2 (Fixed Indentation & Defined Constants)"
 # Active supported models list
 PRIMARY_MODEL = "gemini-2.5-flash"
 FALLBACK_MODEL_1 = "gemini-2.5-pro"
-FALLBACK_MODEL_2 = "gemini-2.0-flash"
 
 MAX_PDF_SIZE_MB = 50
 

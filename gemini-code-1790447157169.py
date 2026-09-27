@@ -55,11 +55,15 @@ def get_gemini_client():
 client = get_gemini_client()
 
 
+from pydantic import BaseModel, Field, ValidationError, ConfigDict
+from typing import List, Optional
+
 # ============================================================
 # PYDANTIC STRUCTURED DATA MODELS
 # ============================================================
 
 class PlanetPosition(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     planet: str = ""
     degree: Optional[str] = ""
     rashi: Optional[str] = ""
@@ -70,6 +74,7 @@ class PlanetPosition(BaseModel):
 
 
 class DashaPeriod(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     mahadasha: str = ""
     antardasha: str = ""
     pratyantar_dasha: str = ""
@@ -79,6 +84,7 @@ class DashaPeriod(BaseModel):
 
 
 class DivisionalChart(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     chart: str = ""
     ascendant: Optional[str] = ""
     important_planets: List[str] = Field(default_factory=list)
@@ -86,6 +92,7 @@ class DivisionalChart(BaseModel):
 
 
 class AshtakavargaData(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     sixth_house: Optional[str] = ""
     seventh_house: Optional[str] = ""
     tenth_house: Optional[str] = ""
@@ -93,6 +100,7 @@ class AshtakavargaData(BaseModel):
 
 
 class PastEventVerification(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     event: str = ""
     date_or_age: str = ""
     verification: str = ""
@@ -100,8 +108,9 @@ class PastEventVerification(BaseModel):
 
 
 class KundliExtraction(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     extraction_status: str = ""
-    birth_details: dict = Field(default_factory=dict)
+    birth_details: str = ""  # dict ki jagah simple string se error avoid hota hai
     current_dasha: DashaPeriod = Field(default_factory=DashaPeriod)
     planet_positions: List[PlanetPosition] = Field(default_factory=list)
     ashtakavarga: AshtakavargaData = Field(default_factory=AshtakavargaData)
@@ -114,6 +123,7 @@ class KundliExtraction(BaseModel):
 
 
 class QuarterlyAnalysis(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     quarter: str = ""
     period: str = ""
     career: str = ""
@@ -125,6 +135,7 @@ class QuarterlyAnalysis(BaseModel):
 
 
 class FinalAstroReport(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     report_title: str = ""
     executive_summary: str = ""
     data_quality_note: str = ""
@@ -137,7 +148,6 @@ class FinalAstroReport(BaseModel):
     spiritual_remedies: List[str] = Field(default_factory=list)
     important_dates: List[str] = Field(default_factory=list)
     limitations: List[str] = Field(default_factory=list)
-
 
 # ============================================================
 # SIMPLE AUTHENTICATION VERIFICATION

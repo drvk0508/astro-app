@@ -18,11 +18,39 @@ st.set_page_config(
 APP_NAME = "Astro-Vastu AI Report Generator"
 APP_VERSION = "4.1 (Fixed Syntax & Active Gemini Models)"
 
-# Active & Supported Gemini Models (Google GenAI SDK Format)
+# ============================================================
+# ACTIVE GEMINI MODELS
+# ============================================================
+
+# Official recommended model
 PRIMARY_MODEL = "gemini-2.5-flash"
 FALLBACK_MODEL_1 = "gemini-2.5-pro"
-FALLBACK_MODEL_2 = "gemini-2.0-flash"
-MAX_PDF_SIZE_MB = 50
+FALLBACK_MODEL_2 = "gemini-1.5-pro"
+
+
+# ============================================================
+# MULTI-MODEL FALLBACK & RETRY API CALLER
+# ============================================================
+
+def call_gemini_with_fallback(client, contents, config):
+    # Models array list without any 'models/' prefix
+    models_to_try = [PRIMARY_MODEL, FALLBACK_MODEL_1, FALLBACK_MODEL_2]
+    last_exception = None
+
+    for model_name in models_to_try:
+        try:
+            response = client.models.generate_content(
+                model=model_name,
+                contents=contents,
+                config=config
+            )
+            if response and response.text:
+                return response
+        except Exception as e:
+            last_exception = e
+            continue
+
+    raise RuntimeError(f"Sabhi AI models busy hain ya error aaya: {str(last_exception)}")
 
 
 # ============================================================

@@ -29,12 +29,7 @@ APP_VERSION = "2.0"
 
 GEMINI_MODEL = "gemini-2.5-flash"
 
-# IMPORTANT:
-# Put your Google Apps Script Web App URL here.
-# Example:
-# https://script.google.com/macros/s/XXXXXXXXXXXX/exec
 SHEET_API_URL = st.secrets.get("SHEET_API_URL", "")
-
 MAX_PDF_SIZE_MB = 50
 
 
@@ -44,7 +39,6 @@ MAX_PDF_SIZE_MB = 50
 
 @st.cache_resource
 def get_gemini_client():
-
     try:
         api_key = st.secrets["GEMINI_API_KEY"]
 
@@ -54,12 +48,10 @@ def get_gemini_client():
         return genai.Client(api_key=api_key)
 
     except Exception as e:
-
         st.error(
             "Gemini API configuration error.\n\n"
             f"Details: {str(e)}"
         )
-
         st.stop()
 
 
@@ -71,7 +63,6 @@ client = get_gemini_client()
 # ============================================================
 
 class PlanetPosition(BaseModel):
-
     planet: str = ""
     degree: Optional[str] = ""
     rashi: Optional[str] = ""
@@ -82,7 +73,6 @@ class PlanetPosition(BaseModel):
 
 
 class DashaPeriod(BaseModel):
-
     mahadasha: str = ""
     antardasha: str = ""
     pratyantar_dasha: str = ""
@@ -92,7 +82,6 @@ class DashaPeriod(BaseModel):
 
 
 class DivisionalChart(BaseModel):
-
     chart: str = ""
     ascendant: Optional[str] = ""
     important_planets: List[str] = Field(default_factory=list)
@@ -100,7 +89,6 @@ class DivisionalChart(BaseModel):
 
 
 class AshtakavargaData(BaseModel):
-
     sixth_house: Optional[str] = ""
     seventh_house: Optional[str] = ""
     tenth_house: Optional[str] = ""
@@ -108,7 +96,6 @@ class AshtakavargaData(BaseModel):
 
 
 class PastEventVerification(BaseModel):
-
     event: str = ""
     date_or_age: str = ""
     verification: str = ""
@@ -116,48 +103,20 @@ class PastEventVerification(BaseModel):
 
 
 class KundliExtraction(BaseModel):
-
     extraction_status: str = ""
-
     birth_details: dict = Field(default_factory=dict)
-
-    current_dasha: DashaPeriod = Field(
-        default_factory=DashaPeriod
-    )
-
-    planet_positions: List[PlanetPosition] = Field(
-        default_factory=list
-    )
-
-    ashtakavarga: AshtakavargaData = Field(
-        default_factory=AshtakavargaData
-    )
-
-    divisional_charts: List[DivisionalChart] = Field(
-        default_factory=list
-    )
-
+    current_dasha: DashaPeriod = Field(default_factory=DashaPeriod)
+    planet_positions: List[PlanetPosition] = Field(default_factory=list)
+    ashtakavarga: AshtakavargaData = Field(default_factory=AshtakavargaData)
+    divisional_charts: List[DivisionalChart] = Field(default_factory=list)
     kp_data_available: bool = False
-
-    kp_observations: List[str] = Field(
-        default_factory=list
-    )
-
-    past_event_verification: List[PastEventVerification] = Field(
-        default_factory=list
-    )
-
-    missing_information: List[str] = Field(
-        default_factory=list
-    )
-
-    warnings: List[str] = Field(
-        default_factory=list
-    )
+    kp_observations: List[str] = Field(default_factory=list)
+    past_event_verification: List[PastEventVerification] = Field(default_factory=list)
+    missing_information: List[str] = Field(default_factory=list)
+    warnings: List[str] = Field(default_factory=list)
 
 
 class QuarterlyAnalysis(BaseModel):
-
     quarter: str = ""
     period: str = ""
     career: str = ""
@@ -169,53 +128,27 @@ class QuarterlyAnalysis(BaseModel):
 
 
 class FinalAstroReport(BaseModel):
-
     report_title: str = ""
-
     executive_summary: str = ""
-
     data_quality_note: str = ""
-
     career_and_finance_cause: str = ""
-
     job_and_debt_timeline: str = ""
-
     marriage_d9_analysis: str = ""
-
     children_d7_analysis: str = ""
-
-    quarterly_breakdown: List[QuarterlyAnalysis] = Field(
-        default_factory=list
-    )
-
-    vastu_improvements: List[str] = Field(
-        default_factory=list
-    )
-
-    spiritual_remedies: List[str] = Field(
-        default_factory=list
-    )
-
-    important_dates: List[str] = Field(
-        default_factory=list
-    )
-
-    limitations: List[str] = Field(
-        default_factory=list
-    )
+    quarterly_breakdown: List[QuarterlyAnalysis] = Field(default_factory=list)
+    vastu_improvements: List[str] = Field(default_factory=list)
+    spiritual_remedies: List[str] = Field(default_factory=list)
+    important_dates: List[str] = Field(default_factory=list)
+    limitations: List[str] = Field(default_factory=list)
 
 
 # ============================================================
-# GOOGLE SHEET API
+# GOOGLE SHEET API (FIXED REDIRECT & EMPTY RESPONSE)
 # ============================================================
 
 def call_sheet_api(action, passcode):
-
     if not SHEET_API_URL:
-
-        raise RuntimeError(
-            "SHEET_API_URL Streamlit Secrets mein configured nahi hai."
-        )
+        raise RuntimeError("SHEET_API_URL Streamlit Secrets mein configured nahi hai.")
 
     payload = {
         "action": action,
@@ -225,21 +158,22 @@ def call_sheet_api(action, passcode):
     response = requests.post(
         SHEET_API_URL,
         json=payload,
-        timeout=20
+        timeout=20,
+        allow_redirects=True
     )
 
     response.raise_for_status()
 
-    data = response.json()
+    if not response.text.strip():
+        raise RuntimeError("Google Apps Script ne khali (empty) response bheja hai.")
+
+    try:
+        data = response.json()
+    except Exception:
+        raise RuntimeError(f"Server ne valid JSON nahi bheja. Response text: {response.text[:100]}")
 
     if not data.get("success", False):
-
-        raise RuntimeError(
-            data.get(
-                "message",
-                "Google Sheet API error."
-            )
-        )
+        raise RuntimeError(data.get("message", "Google Sheet API error."))
 
     return data
 
@@ -249,12 +183,7 @@ def call_sheet_api(action, passcode):
 # ============================================================
 
 def verify_passcode(passcode):
-
-    clean_code = (
-        str(passcode)
-        .strip()
-        .upper()
-    )
+    clean_code = str(passcode).strip().upper()
 
     if not clean_code:
         return {
@@ -264,59 +193,18 @@ def verify_passcode(passcode):
         }
 
     try:
-
-        data = call_sheet_api(
-            "verify",
-            clean_code
-        )
-def call_sheet_api(action, passcode):
-    if not SHEET_API_URL:
-        raise RuntimeError("SHEET_API_URL Streamlit Secrets mein configured nahi hai.")
-
-    payload = {"action": action, "passcode": passcode}
-
-    # FIX 1: allow_redirects=True add kiya taaki Google redirection handle ho jaye
-    response = requests.post(SHEET_API_URL, json=payload, timeout=20, allow_redirects=True)
-    response.raise_for_status()
-
-    # FIX 2: Khali response check
-    if not response.text.strip():
-        raise RuntimeError("Google Apps Script ne khali (empty) response bheja hai.")
-
-    # FIX 3: Safe JSON decode (Crash hone se bachane ke liye)
-    try:
-        data = response.json()
-    except Exception:
-        raise RuntimeError(f"Server ne JSON response nahi bheja. Response: {response.text[:100]}")
-
-    if not data.get("success", False):
-        raise RuntimeError(data.get("message", "Google Sheet API error."))
-
-    return data
+        data = call_sheet_api("verify", clean_code)
         return {
-            "valid": bool(
-                data.get("valid", False)
-            ),
-
-            "reports_left": int(
-                data.get("reports_left", 0)
-            ),
-
-            "message": data.get(
-                "message",
-                ""
-            )
+            "valid": bool(data.get("valid", False)),
+            "reports_left": int(data.get("reports_left", 0)),
+            "message": data.get("message", "")
         }
 
     except Exception as e:
-
         return {
             "valid": False,
             "reports_left": 0,
-            "message": (
-                "Passcode verification failed: "
-                + str(e)
-            )
+            "message": "Passcode verification failed: " + str(e)
         }
 
 
@@ -325,37 +213,18 @@ def call_sheet_api(action, passcode):
 # ============================================================
 
 def reserve_credit(passcode):
-
-    clean_code = (
-        str(passcode)
-        .strip()
-        .upper()
-    )
+    clean_code = str(passcode).strip().upper()
 
     try:
-
-        data = call_sheet_api(
-            "reserve",
-            clean_code
-        )
-
+        data = call_sheet_api("reserve", clean_code)
         return {
             "success": True,
-            "reports_left": int(
-                data.get("reports_left", 0)
-            ),
-            "reservation_id": data.get(
-                "reservation_id",
-                ""
-            ),
-            "message": data.get(
-                "message",
-                "Credit reserved."
-            )
+            "reports_left": int(data.get("reports_left", 0)),
+            "reservation_id": data.get("reservation_id", ""),
+            "message": data.get("message", "Credit reserved.")
         }
 
     except Exception as e:
-
         return {
             "success": False,
             "reports_left": 0,
@@ -368,22 +237,12 @@ def reserve_credit(passcode):
 # COMPLETE CREDIT
 # ============================================================
 
-def complete_credit(
-    passcode,
-    reservation_id
-):
-
+def complete_credit(passcode, reservation_id):
     try:
-
-        data = call_sheet_api(
-            "complete",
-            passcode
-        )
-
+        data = call_sheet_api("complete", passcode)
         return data
 
     except Exception as e:
-
         return {
             "success": False,
             "message": str(e)
@@ -394,22 +253,12 @@ def complete_credit(
 # REFUND CREDIT
 # ============================================================
 
-def refund_credit(
-    passcode,
-    reservation_id
-):
-
+def refund_credit(passcode, reservation_id):
     try:
-
-        data = call_sheet_api(
-            "refund",
-            passcode
-        )
-
+        data = call_sheet_api("refund", passcode)
         return data
 
     except Exception as e:
-
         return {
             "success": False,
             "message": str(e)
@@ -421,49 +270,26 @@ def refund_credit(
 # ============================================================
 
 def validate_pdf(uploaded_file):
-
     if uploaded_file is None:
+        raise ValueError("Kundli PDF upload karein.")
 
-        raise ValueError(
-            "Kundli PDF upload karein."
-        )
-
-    file_name = (
-        uploaded_file.name
-        .lower()
-        .strip()
-    )
+    file_name = uploaded_file.name.lower().strip()
 
     if not file_name.endswith(".pdf"):
-
-        raise ValueError(
-            "Sirf PDF file allowed hai."
-        )
+        raise ValueError("Sirf PDF file allowed hai.")
 
     pdf_bytes = uploaded_file.getvalue()
 
     if not pdf_bytes:
+        raise ValueError("Uploaded PDF empty hai.")
 
-        raise ValueError(
-            "Uploaded PDF empty hai."
-        )
-
-    size_mb = (
-        len(pdf_bytes)
-        / (1024 * 1024)
-    )
+    size_mb = len(pdf_bytes) / (1024 * 1024)
 
     if size_mb > MAX_PDF_SIZE_MB:
-
-        raise ValueError(
-            f"PDF {MAX_PDF_SIZE_MB} MB se chhoti honi chahiye."
-        )
+        raise ValueError(f"PDF {MAX_PDF_SIZE_MB} MB se chhoti honi chahiye.")
 
     if not pdf_bytes.startswith(b"%PDF"):
-
-        raise ValueError(
-            "File valid PDF format mein nahi lag rahi."
-        )
+        raise ValueError("File valid PDF format mein nahi lag rahi.")
 
     return pdf_bytes
 
@@ -472,13 +298,8 @@ def validate_pdf(uploaded_file):
 # STEP 1 — KUNDLI EXTRACTION
 # ============================================================
 
-def extract_kundli_data(
-    pdf_bytes,
-    past_events
-):
-
+def extract_kundli_data(pdf_bytes, past_events):
     extraction_prompt = f"""
-
 तुम एक विशेषज्ञ Astro-Vastu research data extraction assistant हो।
 
 तुम्हारा काम interpretation से पहले Kundli PDF से उपलब्ध
@@ -577,9 +398,7 @@ Return ONLY JSON matching the supplied schema.
 """
 
     response = client.models.generate_content(
-
         model=GEMINI_MODEL,
-
         contents=[
             types.Part.from_bytes(
                 data=pdf_bytes,
@@ -587,7 +406,6 @@ Return ONLY JSON matching the supplied schema.
             ),
             extraction_prompt
         ],
-
         config={
             "response_mime_type": "application/json",
             "response_schema": KundliExtraction
@@ -595,43 +413,27 @@ Return ONLY JSON matching the supplied schema.
     )
 
     if not response.text:
-
-        raise RuntimeError(
-            "Gemini ने Step-1 में कोई response नहीं दिया."
-        )
+        raise RuntimeError("Gemini ने Step-1 में कोई response नहीं दिया.")
 
     try:
-
-        extraction = KundliExtraction.model_validate_json(
-            response.text
-        )
-
+        extraction = KundliExtraction.model_validate_json(response.text)
         return extraction
 
     except ValidationError as e:
-
-        raise RuntimeError(
-            "Step-1 JSON validation failed: "
-            + str(e)
-        )
+        raise RuntimeError("Step-1 JSON validation failed: " + str(e))
 
 
 # ============================================================
 # STEP 2 — FINAL REPORT
 # ============================================================
 
-def generate_final_report(
-    extraction,
-    past_events
-):
-
+def generate_final_report(extraction, past_events):
     verified_json = extraction.model_dump_json(
         indent=2,
         ensure_ascii=False
     )
 
     report_prompt = f"""
-
 तुम Acharya Vijay Krishna Shastri के Astro-Vastu research
 assistant हो।
 
@@ -730,11 +532,8 @@ Return ONLY valid JSON matching the supplied schema.
 """
 
     response = client.models.generate_content(
-
         model=GEMINI_MODEL,
-
         contents=report_prompt,
-
         config={
             "response_mime_type": "application/json",
             "response_schema": FinalAstroReport
@@ -742,25 +541,14 @@ Return ONLY valid JSON matching the supplied schema.
     )
 
     if not response.text:
-
-        raise RuntimeError(
-            "Gemini ने Step-2 में कोई response नहीं दिया."
-        )
+        raise RuntimeError("Gemini ने Step-2 में कोई response नहीं दिया.")
 
     try:
-
-        report = FinalAstroReport.model_validate_json(
-            response.text
-        )
-
+        report = FinalAstroReport.model_validate_json(response.text)
         return report
 
     except ValidationError as e:
-
-        raise RuntimeError(
-            "Step-2 JSON validation failed: "
-            + str(e)
-        )
+        raise RuntimeError("Step-2 JSON validation failed: " + str(e))
 
 
 # ============================================================
@@ -768,127 +556,55 @@ Return ONLY valid JSON matching the supplied schema.
 # ============================================================
 
 def report_to_markdown(report):
-
     md = []
 
-    md.append(
-        f"# {report.report_title or 'Astro-Vastu Precision Report'}"
-    )
-
+    md.append(f"# {report.report_title or 'Astro-Vastu Precision Report'}")
     md.append("\n## Executive Summary\n")
     md.append(report.executive_summary)
 
     md.append("\n## Data Quality Note\n")
     md.append(report.data_quality_note)
 
-    md.append(
-        "\n## 1. Career & Financial Situation\n"
-    )
-    md.append(
-        report.career_and_finance_cause
-    )
+    md.append("\n## 1. Career & Financial Situation\n")
+    md.append(report.career_and_finance_cause)
 
-    md.append(
-        "\n## 2. Job / Career / Debt Timeline\n"
-    )
-    md.append(
-        report.job_and_debt_timeline
-    )
+    md.append("\n## 2. Job / Career / Debt Timeline\n")
+    md.append(report.job_and_debt_timeline)
 
-    md.append(
-        "\n## 3. Marriage — D-9 Analysis\n"
-    )
-    md.append(
-        report.marriage_d9_analysis
-    )
+    md.append("\n## 3. Marriage — D-9 Analysis\n")
+    md.append(report.marriage_d9_analysis)
 
-    md.append(
-        "\n## 4. Children — D-7 Analysis\n"
-    )
-    md.append(
-        report.children_d7_analysis
-    )
+    md.append("\n## 4. Children — D-7 Analysis\n")
+    md.append(report.children_d7_analysis)
 
-    md.append(
-        "\n## 5. Upcoming 1-Year Quarterly Breakdown\n"
-    )
+    md.append("\n## 5. Upcoming 1-Year Quarterly Breakdown\n")
 
     for q in report.quarterly_breakdown:
+        md.append(f"\n### {q.quarter} — {q.period}\n")
+        md.append(f"**Career:** {q.career}\n")
+        md.append(f"**Finance:** {q.finance}\n")
+        md.append(f"**Debt:** {q.debt}\n")
+        md.append(f"**Relationship:** {q.relationship}\n")
+        md.append(f"**Important Transits:** {q.important_transits}\n")
+        md.append(f"**Practical Advice:** {q.practical_advice}\n")
 
-        md.append(
-            f"\n### {q.quarter} — {q.period}\n"
-        )
-
-        md.append(
-            f"**Career:** {q.career}\n"
-        )
-
-        md.append(
-            f"**Finance:** {q.finance}\n"
-        )
-
-        md.append(
-            f"**Debt:** {q.debt}\n"
-        )
-
-        md.append(
-            f"**Relationship:** {q.relationship}\n"
-        )
-
-        md.append(
-            f"**Important Transits:** "
-            f"{q.important_transits}\n"
-        )
-
-        md.append(
-            f"**Practical Advice:** "
-            f"{q.practical_advice}\n"
-        )
-
-    md.append(
-        "\n## 6. Practical Vastu Improvements\n"
-    )
-
+    md.append("\n## 6. Practical Vastu Improvements\n")
     for item in report.vastu_improvements:
+        md.append(f"- {item}")
 
-        md.append(
-            f"- {item}"
-        )
-
-    md.append(
-        "\n## 7. Spiritual / Yantra Remedies\n"
-    )
-
+    md.append("\n## 7. Spiritual / Yantra Remedies\n")
     for item in report.spiritual_remedies:
+        md.append(f"- {item}")
 
-        md.append(
-            f"- {item}"
-        )
-
-    md.append(
-        "\n## 8. Important Dates\n"
-    )
-
+    md.append("\n## 8. Important Dates\n")
     for item in report.important_dates:
+        md.append(f"- {item}")
 
-        md.append(
-            f"- {item}"
-        )
-
-    md.append(
-        "\n## 9. Limitations\n"
-    )
-
+    md.append("\n## 9. Limitations\n")
     for item in report.limitations:
+        md.append(f"- {item}")
 
-        md.append(
-            f"- {item}"
-        )
-
-    md.append(
-        "\n---\n"
-    )
-
+    md.append("\n---\n")
     md.append(
         "*This report is an interpretive Astro-Vastu guidance document "
         "and should not be treated as a guaranteed prediction.*"
@@ -902,15 +618,12 @@ def report_to_markdown(report):
 # ============================================================
 
 if "authenticated" not in st.session_state:
-
     st.session_state.authenticated = False
 
 if "student_code" not in st.session_state:
-
     st.session_state.student_code = ""
 
 if "credits_left" not in st.session_state:
-
     st.session_state.credits_left = 0
 
 
@@ -919,14 +632,8 @@ if "credits_left" not in st.session_state:
 # ============================================================
 
 st.title("🔮 Astro-Vastu AI Report Generator")
-
-st.subheader(
-    "Acharya Vijay Krishna Shastri Special Framework"
-)
-
-st.caption(
-    f"Application Version: {APP_VERSION}"
-)
+st.subheader("Acharya Vijay Krishna Shastri Special Framework")
+st.caption(f"Application Version: {APP_VERSION}")
 
 
 # ============================================================
@@ -940,39 +647,20 @@ student_code = st.sidebar.text_input(
     type="password"
 )
 
-
 if student_code:
-
-    verification = verify_passcode(
-        student_code
-    )
+    verification = verify_passcode(student_code)
 
     if verification["valid"]:
-
         st.session_state.authenticated = True
-        st.session_state.student_code = (
-            student_code.strip().upper()
-        )
-        st.session_state.credits_left = (
-            verification["reports_left"]
-        )
+        st.session_state.student_code = student_code.strip().upper()
+        st.session_state.credits_left = verification["reports_left"]
 
-        st.sidebar.success(
-            "Passcode Verified"
-        )
-
-        st.sidebar.info(
-            f"Reports Left: "
-            f"{verification['reports_left']}"
-        )
+        st.sidebar.success("Passcode Verified")
+        st.sidebar.info(f"Reports Left: {verification['reports_left']}")
 
     else:
-
         st.session_state.authenticated = False
-
-        st.sidebar.error(
-            verification["message"]
-        )
+        st.sidebar.error(verification["message"])
 
 
 # ============================================================
@@ -980,10 +668,7 @@ if student_code:
 # ============================================================
 
 if st.session_state.authenticated:
-
-    st.success(
-        "Student authentication successful."
-    )
+    st.success("Student authentication successful.")
 
     uploaded_file = st.file_uploader(
         "📄 Upload Kundli PDF",
@@ -1009,170 +694,70 @@ if st.session_state.authenticated:
     )
 
     if generate_button:
-
         if uploaded_file is None:
-
-            st.error(
-                "Please Kundli PDF upload karein."
-            )
-
+            st.error("Please Kundli PDF upload karein.")
             st.stop()
 
         if not past_events.strip():
-
-            st.error(
-                "Please Past Events / Query fill karein."
-            )
-
+            st.error("Please Past Events / Query fill karein.")
             st.stop()
 
-        # ----------------------------------------------------
         # STEP A — VALIDATE PDF
-        # ----------------------------------------------------
-
         try:
-
-            pdf_bytes = validate_pdf(
-                uploaded_file
-            )
-
+            pdf_bytes = validate_pdf(uploaded_file)
         except Exception as e:
-
-            st.error(
-                f"PDF Error: {str(e)}"
-            )
-
+            st.error(f"PDF Error: {str(e)}")
             st.stop()
 
-        # ----------------------------------------------------
         # STEP B — RESERVE CREDIT
-        # ----------------------------------------------------
-
-        with st.spinner(
-            "1 credit securely reserve kiya ja raha hai..."
-        ):
-
-            reservation = reserve_credit(
-                st.session_state.student_code
-            )
+        with st.spinner("1 credit securely reserve kiya ja raha hai..."):
+            reservation = reserve_credit(st.session_state.student_code)
 
         if not reservation["success"]:
-
-            st.error(
-                "Credit reserve nahi ho saka.\n\n"
-                + reservation["message"]
-            )
-
+            st.error("Credit reserve nahi ho saka.\n\n" + reservation["message"])
             st.stop()
 
-        reservation_id = (
-            reservation["reservation_id"]
-        )
-
+        reservation_id = reservation["reservation_id"]
         credit_completed = False
 
         try:
-
-            # ------------------------------------------------
             # STEP 1
-            # ------------------------------------------------
-
             with st.spinner(
-                "Step 1/2 — Kundli PDF se structured data extract "
-                "aur validate kiya ja raha hai..."
+                "Step 1/2 — Kundli PDF se structured data extract aur validate kiya ja raha hai..."
             ):
+                extraction = extract_kundli_data(pdf_bytes, past_events)
 
-                extraction = extract_kundli_data(
-                    pdf_bytes,
-                    past_events
-                )
+            st.success("Step 1 completed — Kundli data structured JSON mein extract ho gaya.")
 
-            st.success(
-                "Step 1 completed — Kundli data structured JSON mein extract ho gaya."
-            )
+            with st.expander("🔍 View Extracted / Verified Kundli Data"):
+                st.json(extraction.model_dump())
 
-            # ------------------------------------------------
-            # SHOW EXTRACTION
-            # ------------------------------------------------
-
-            with st.expander(
-                "🔍 View Extracted / Verified Kundli Data"
-            ):
-
-                st.json(
-                    extraction.model_dump()
-                )
-
-            # ------------------------------------------------
             # STEP 2
-            # ------------------------------------------------
+            with st.spinner("Step 2/2 — Astro-Vastu report prepare ki ja rahi hai..."):
+                final_report = generate_final_report(extraction, past_events)
 
-            with st.spinner(
-                "Step 2/2 — Astro-Vastu report prepare ki ja rahi hai..."
-            ):
+            st.success("Astro-Vastu Report Generated Successfully!")
 
-                final_report = generate_final_report(
-                    extraction,
-                    past_events
-                )
-
-            st.success(
-                "Astro-Vastu Report Generated Successfully!"
-            )
-
-            # ------------------------------------------------
             # MARK CREDIT COMPLETED
-            # ------------------------------------------------
+            completion = complete_credit(st.session_state.student_code, reservation_id)
 
-            completion = complete_credit(
-                st.session_state.student_code,
-                reservation_id
-            )
-
-            if not completion.get(
-                "success",
-                False
-            ):
-
+            if not completion.get("success", False):
                 st.warning(
-                    "Report generate ho gayi hai, "
-                    "lekin credit completion server response verify nahi hua. "
+                    "Report generate ho gayi hai, lekin credit completion server response verify nahi hua. "
                     "Admin se transaction check karwayein."
                 )
-
             else:
-
                 credit_completed = True
-
                 st.session_state.credits_left = int(
                     completion.get(
                         "reports_left",
-                        max(
-                            st.session_state.credits_left - 1,
-                            0
-                        )
+                        max(st.session_state.credits_left - 1, 0)
                     )
                 )
 
-            # ------------------------------------------------
-            # MARKDOWN
-            # ------------------------------------------------
+            markdown_report = report_to_markdown(final_report)
 
-            markdown_report = report_to_markdown(
-                final_report
-            )
-
-            # ------------------------------------------------
-            # DISPLAY REPORT
-            # ------------------------------------------------
-
-            st.markdown(
-                markdown_report
-            )
-
-            # ------------------------------------------------
-            # DOWNLOAD
-            # ------------------------------------------------
+            st.markdown(markdown_report)
 
             st.download_button(
                 label="📥 Download Report as Markdown",
@@ -1180,10 +765,6 @@ if st.session_state.authenticated:
                 file_name="Astro_Vastu_Report.md",
                 mime="text/markdown"
             )
-
-            # ------------------------------------------------
-            # DOWNLOAD JSON
-            # ------------------------------------------------
 
             json_report = json.dumps(
                 final_report.model_dump(),
@@ -1198,58 +779,22 @@ if st.session_state.authenticated:
                 mime="application/json"
             )
 
-            st.sidebar.success(
-                f"Remaining Credits: "
-                f"{st.session_state.credits_left}"
-            )
+            st.sidebar.success(f"Remaining Credits: {st.session_state.credits_left}")
 
         except Exception as e:
+            st.error("Report generation failed.")
+            st.code(str(e))
 
-            # -----------------------------------------------
-            # GENERATION FAILED → REFUND CREDIT
-            # -----------------------------------------------
+            refund_result = refund_credit(st.session_state.student_code, reservation_id)
 
-            st.error(
-                "Report generation failed."
-            )
-
-            st.code(
-                str(e)
-            )
-
-            refund_result = refund_credit(
-                st.session_state.student_code,
-                reservation_id
-            )
-
-            if refund_result.get(
-                "success",
-                False
-            ):
-
-                st.info(
-                    "Report generate nahi hui, "
-                    "isliye reserved credit automatically refund kar diya gaya."
-                )
-
+            if refund_result.get("success", False):
+                st.info("Report generate nahi hui, isliye reserved credit automatically refund kar diya gaya.")
             else:
-
-                st.error(
-                    "Credit refund automatic nahi ho saka. "
-                    "Admin ko reservation ID provide karein:"
-                )
-
-                st.code(
-                    reservation_id
-                )
+                st.error("Credit refund automatic nahi ho saka. Admin ko reservation ID provide karein:")
+                st.code(reservation_id)
 
 else:
-
-    st.info(
-        "Report generate karne ke liye "
-        "Student Passcode enter karein."
-    )
-
+    st.info("Report generate karne ke liye Student Passcode enter karein.")
     st.markdown(
         """
         ### 🔐 Student Access

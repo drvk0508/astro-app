@@ -15,7 +15,7 @@ st.set_page_config(
 )
 
 APP_NAME = "Astro-Vastu AI Report Generator"
-APP_VERSION = "2.2 (PDF Part Fix)"
+APP_VERSION = "2.3 (UI & Auth Fix)"
 GEMINI_MODEL = "gemini-2.5-flash"
 MAX_PDF_SIZE_MB = 50
 
@@ -45,14 +45,17 @@ client = get_gemini_client()
 def verify_passcode(passcode):
     clean_code = str(passcode).strip()
     if not clean_code:
-        return {"valid": False, "message": "Passcode khali hai."}
+        return False
 
-    valid_student_code = st.secrets.get("STUDENT_PASSCODE", "ASTRO2026")
-    valid_admin_code = st.secrets.get("ADMIN_PASSCODE", "ADMIN2026")
+    valid_student_code = str(st.secrets.get("STUDENT_PASSCODE", "ASTRO2026")).strip()
+    valid_admin_code = str(st.secrets.get("ADMIN_PASSCODE", "ADMIN2026")).strip()
 
-    if clean_code in [valid_student_code, valid_admin_code]:
-        return {"valid": True, "message": "Passcode Verified"}
-    return {"valid": False, "message": "Invalid Passcode!"}
+    return clean_code in [valid_student_code, valid_admin_code]
+
+
+# Initialize session state for auth
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
 
 
 # ============================================================
@@ -92,7 +95,7 @@ def parse_gemini_json(text):
 
 
 # ============================================================
-# STEP 1 — KUNDLI EXTRACTION (FIXED PDF PART FORMAT)
+# STEP 1 — KUNDLI EXTRACTION
 # ============================================================
 
 def extract_kundli_data(pdf_bytes, past_events):
@@ -155,7 +158,6 @@ Return ONLY valid JSON with this exact structure:
 }}
 """
 
-    # Sahi PDF Part Object yahan create ho raha hai
     pdf_part = types.Part.from_bytes(
         data=pdf_bytes,
         mime_type="application/pdf"
@@ -197,99 +199,4 @@ Return ONLY valid JSON with this exact structure:
   "career_and_finance_cause": "...",
   "job_and_debt_timeline": "...",
   "marriage_d9_analysis": "...",
-  "children_d7_analysis": "...",
-  "quarterly_breakdown": [
-    {{
-      "quarter": "Q1",
-      "period": "Jan-Mar",
-      "career": "...",
-      "finance": "...",
-      "debt": "...",
-      "relationship": "...",
-      "important_transits": "...",
-      "practical_advice": "..."
-    }}
-  ],
-  "vastu_improvements": ["Remedy 1", "Remedy 2"],
-  "spiritual_remedies": ["Remedy 1", "Remedy 2"],
-  "important_dates": ["Date 1", "Date 2"],
-  "limitations": ["Limitation 1"]
-}}
-"""
-
-    response = client.models.generate_content(
-        model=GEMINI_MODEL,
-        contents=prompt,
-        config={"response_mime_type": "application/json"}
-    )
-
-    if not response.text:
-        raise RuntimeError("Gemini ne Step-2 me koi response nahi diya.")
-
-    return parse_gemini_json(response.text)
-
-
-# ============================================================
-# MARKDOWN FORMATTER
-# ============================================================
-
-def report_to_markdown(report):
-    md = []
-    md.append(f"# {report.get('report_title', 'Astro-Vastu Precision Report')}")
-    md.append("\n## Executive Summary\n" + str(report.get('executive_summary', '')))
-    md.append("\n## Data Quality Note\n" + str(report.get('data_quality_note', '')))
-    md.append("\n## 1. Career & Financial Situation\n" + str(report.get('career_and_finance_cause', '')))
-    md.append("\n## 2. Job / Career / Debt Timeline\n" + str(report.get('job_and_debt_timeline', '')))
-    md.append("\n## 3. Marriage — D-9 Analysis\n" + str(report.get('marriage_d9_analysis', '')))
-    md.append("\n## 4. Children — D-7 Analysis\n" + str(report.get('children_d7_analysis', '')))
-
-    md.append("\n## 5. Upcoming 1-Year Quarterly Breakdown\n")
-    for q in report.get('quarterly_breakdown', []):
-        md.append(f"\n### {q.get('quarter', '')} — {q.get('period', '')}\n")
-        md.append(f"**Career:** {q.get('career', '')}\n")
-        md.append(f"**Finance:** {q.get('finance', '')}\n")
-        md.append(f"**Debt:** {q.get('debt', '')}\n")
-        md.append(f"**Relationship:** {q.get('relationship', '')}\n")
-        md.append(f"**Important Transits:** {q.get('important_transits', '')}\n")
-        md.append(f"**Practical Advice:** {q.get('practical_advice', '')}\n")
-
-    md.append("\n## 6. Practical Vastu Improvements\n")
-    for item in report.get('vastu_improvements', []):
-        md.append(f"- {item}")
-
-    md.append("\n## 7. Spiritual / Yantra Remedies\n")
-    for item in report.get('spiritual_remedies', []):
-        md.append(f"- {item}")
-
-    md.append("\n## 8. Important Dates\n")
-    for item in report.get('important_dates', []):
-        md.append(f"- {item}")
-
-    md.append("\n## 9. Limitations\n")
-    for item in report.get('limitations', []):
-        md.append(f"- {item}")
-
-    md.append("\n---\n*This report is an interpretive Astro-Vastu guidance document.*")
-    return "\n".join(md)
-
-
-# ============================================================
-# MAIN INTERFACE
-# ============================================================
-
-if "authenticated" not in st.session_state:
-    st.session_state.authenticated = False
-
-st.title("🔮 Astro-Vastu AI Report Generator")
-st.subheader("Acharya Vijay Krishna Shastri Special Framework")
-
-st.sidebar.header("🔑 Student Authentication")
-student_code = st.sidebar.text_input("Enter Student Passcode", type="password")
-
-if student_code:
-    res = verify_passcode(student_code)
-    if res["valid"]:
-        st.session_state.authenticated = True
-        st.sidebar.success("Passcode Verified")
-    else:
-        st.session_state.authenticated = False
+  "children_d7_analysis": "
